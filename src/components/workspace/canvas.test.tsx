@@ -31,9 +31,7 @@ function setup(design: RenderMessage | null = RENDER) {
   const posted = vi.spyOn(preview, "postMessage");
   const fromPreview = (data: unknown, source: Window | null = preview) =>
     act(() => {
-      window.dispatchEvent(
-        new MessageEvent("message", { data, source, origin: window.location.origin }),
-      );
+      window.dispatchEvent(new MessageEvent("message", { data, source, origin: "null" }));
     });
   return { onSelect, onFixError, posted, fromPreview, frame, view };
 }
@@ -43,11 +41,18 @@ describe("Canvas", () => {
     const { posted, fromPreview } = setup();
     expect(posted).not.toHaveBeenCalled();
     fromPreview({ type: "ready" });
-    expect(posted).toHaveBeenCalledWith(RENDER, window.location.origin);
-    expect(posted).toHaveBeenCalledWith(
-      { type: "highlight", nodeId: "n2" },
-      window.location.origin,
-    );
+    expect(posted).toHaveBeenCalledWith(RENDER, "*");
+    expect(posted).toHaveBeenCalledWith({ type: "highlight", nodeId: "n2" }, "*");
+  });
+
+  it("asks a preview that loaded before the workspace to say it is ready", () => {
+    const connect = vi.fn();
+    vi.spyOn(HTMLIFrameElement.prototype, "contentWindow", "get").mockReturnValue({
+      postMessage: connect,
+    } as unknown as Window);
+    setup();
+    expect(connect).toHaveBeenCalledWith({ type: "connect" }, "*");
+    vi.restoreAllMocks();
   });
 
   it("passes selections on and ignores messages from other windows", () => {
@@ -69,6 +74,7 @@ describe("Canvas", () => {
   it("sizes the frame to the viewport and says when there is nothing to show", () => {
     const { frame } = setup(null);
     expect(frame.parentElement?.style.width).toBe("390px");
+    expect(frame.getAttribute("sandbox")).toBe("allow-scripts");
     expect(screen.getByText("Nothing drafted yet")).toBeTruthy();
   });
 });

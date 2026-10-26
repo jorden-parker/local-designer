@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --hostname 127.0.0.1 --port 4490",
-    "build": "next build",
+    "dev": "bun run build:preview && next dev --hostname 127.0.0.1 --port 4490",
+    "build": "bun run build:preview && next build",
     "start": "next start --hostname 127.0.0.1 --port 4490",
     "lint": "eslint",
     "test": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
-    "prepare": "husky"
+    "prepare": "husky",
+    "build:preview": "bun build src/preview/main.tsx --outdir public/preview --target browser --format iife --production"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",

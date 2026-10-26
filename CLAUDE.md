@@ -73,11 +73,18 @@ code. Only `react` and `./components` may be imported. `loadDesign` runs the
 components module and then the page, with the component exports injected as
 scope names and behind `require("./components")`.
 
-**Preview** (`app/(preview)/preview`, `components/preview/`). An iframe
-(`sandbox="allow-scripts allow-same-origin"`) gets `render` messages through
-`lib/preview-protocol.ts` (zod). A message holds the code, the entry (`default`
-or `Showcase`), the components source, the theme CSS from `themeCss` and the
-light or dark mode. The theme goes into a `<style type="text/tailwindcss">` for
+**Preview** (`src/preview/main.tsx`, `components/preview/`). Generated code is
+untrusted, so it runs in an iframe with `sandbox="allow-scripts"` and no
+`allow-same-origin`. Its origin is opaque: it cannot read the app, its cookie or
+its API. It is a static page, `public/preview/index.html`, that loads `main.js`.
+`bun run build:preview` bundles that file as a classic script, and `dev` and
+`build` run it first. Rebuild it after you change `components/preview/`.
+Messages use the `*` target origin. Each side checks `event.source` instead, and
+both validate through `lib/preview-protocol.ts` (zod). The workspace sends
+`connect` once it listens, because the preview can load before the workspace
+hydrates. A `render` message holds the code, the entry (`default` or
+`Showcase`), the components source, the theme CSS from `themeCss` and the light
+or dark mode. The theme goes into a `<style type="text/tailwindcss">` for
 `@tailwindcss/browser`. The preview posts back `ready`, `select` and `error`.
 
 **Storage** (`lib/store/designs.ts`). Designs are JSON files in
@@ -106,8 +113,9 @@ is the only module that fetches.
 **Security boundary** (`src/proxy.ts`). It rejects non-loopback `Host` headers
 and requires the `local-designer-token` cookie. The token lives in a 0600 file,
 and `instrumentation.ts` prints the sign-in link. Non-GET requests must be
-same-origin JSON. Every route forbids framing except `/preview`, which only its
-own origin may frame. Keep new mutating routes JSON.
+same-origin JSON. GET `/preview/` files are served without the cookie because
+the sandboxed frame cannot send it. Every route forbids framing except
+`/preview/`, which only its own origin may frame. Keep new mutating routes JSON.
 
 **UI** uses Geist-style tokens in `src/app/(studio)/globals.css`, with dark mode
 following `prefers-color-scheme`. Use those utilities, not hex or arbitrary

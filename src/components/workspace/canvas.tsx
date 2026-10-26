@@ -15,6 +15,12 @@ type Props = {
   onFixError: (message: string) => void;
 };
 
+const OPAQUE_FRAME_ORIGIN = "*";
+
+function postToFrame(frame: HTMLIFrameElement | null, message: ToPreviewMessage) {
+  frame?.contentWindow?.postMessage(message, OPAQUE_FRAME_ORIGIN);
+}
+
 function usePreviewFrame(
   design: RenderMessage | null,
   selectedNodeId: string | null,
@@ -29,7 +35,7 @@ function usePreviewFrame(
   useEffect(() => {
     const receive = (event: MessageEvent) => {
       if (event.source !== frame.current?.contentWindow) return;
-      if (event.origin !== window.location.origin || !isFromPreview(event.data)) return;
+      if (!isFromPreview(event.data)) return;
       if (event.data.type === "ready") setReady(true);
       if (event.data.type === "select") onSelect(event.data.nodeId);
       if (event.data.type === "error") setError({ design, message: event.data.message });
@@ -39,18 +45,15 @@ function usePreviewFrame(
   }, [design, onSelect]);
 
   useEffect(() => {
-    const post = (message: ToPreviewMessage) =>
-      frame.current?.contentWindow?.postMessage(message, window.location.origin);
-    if (ready && design !== null) post(design);
+    postToFrame(frame.current, { type: "connect" });
+  }, []);
+
+  useEffect(() => {
+    if (ready && design !== null) postToFrame(frame.current, design);
   }, [ready, design]);
 
   useEffect(() => {
-    if (ready) {
-      frame.current?.contentWindow?.postMessage(
-        { type: "highlight", nodeId: selectedNodeId } satisfies ToPreviewMessage,
-        window.location.origin,
-      );
-    }
+    if (ready) postToFrame(frame.current, { type: "highlight", nodeId: selectedNodeId });
   }, [ready, selectedNodeId]);
 
   return { frame, error: error?.design === design ? error.message : null };
@@ -69,8 +72,8 @@ export function Canvas({ design, viewport, selectedNodeId, running, onSelect, on
         <iframe
           ref={frame}
           title="Design preview"
-          src="/preview"
-          sandbox="allow-scripts allow-same-origin"
+          src="/preview/index.html"
+          sandbox="allow-scripts"
           className="size-full"
         />
         {design === null && (

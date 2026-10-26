@@ -7,8 +7,10 @@ import { highlightCss } from "./highlight-css";
 import { RenderBoundary } from "./render-boundary";
 import { usePointerSelection } from "./use-pointer-selection";
 
+const ANY_ORIGIN = "*";
+
 function postToWorkspace(message: FromPreviewMessage) {
-  window.parent.postMessage(message, window.location.origin);
+  window.parent.postMessage(message, ANY_ORIGIN);
 }
 
 const reportError = (message: string) => postToWorkspace({ type: "error", message });
@@ -25,10 +27,11 @@ export function PreviewRuntime() {
 
   useEffect(() => {
     const receive = (event: MessageEvent) => {
-      if (event.source !== window.parent || event.origin !== window.location.origin) return;
+      if (event.source !== window.parent) return;
       if (!isToPreview(event.data)) return;
       if (event.data.type === "render") setDesign(event.data);
-      else setSelectedId(event.data.nodeId);
+      if (event.data.type === "highlight") setSelectedId(event.data.nodeId);
+      if (event.data.type === "connect") postToWorkspace({ type: "ready" });
     };
     window.addEventListener("message", receive);
     postToWorkspace({ type: "ready" });

@@ -43,10 +43,17 @@ function signInFromLink(request: NextRequest, token: string): NextResponse | nul
   return response;
 }
 
+const PREVIEW_PATH = "/preview/";
+
+function isPreviewAsset(request: NextRequest): boolean {
+  return request.method === "GET" && request.nextUrl.pathname.startsWith(PREVIEW_PATH);
+}
+
 function guard(request: NextRequest, token: string): NextResponse {
   if (!isLoopback(request.headers.get("host"))) {
     return new NextResponse("Forbidden", { status: 403 });
   }
+  if (isPreviewAsset(request)) return NextResponse.next();
   const signedIn = signInFromLink(request, token);
   if (signedIn) return signedIn;
   if (!matchesAccessToken(request.cookies.get(TOKEN_COOKIE)?.value, token)) {
@@ -60,10 +67,8 @@ function guard(request: NextRequest, token: string): NextResponse {
   return NextResponse.next();
 }
 
-const PREVIEW_PATH = "/preview";
-
 function limitFraming(response: NextResponse, pathname: string): NextResponse {
-  const framedBySelf = pathname === PREVIEW_PATH;
+  const framedBySelf = pathname.startsWith(PREVIEW_PATH);
   response.headers.set("X-Frame-Options", framedBySelf ? "SAMEORIGIN" : "DENY");
   response.headers.set(
     "Content-Security-Policy",

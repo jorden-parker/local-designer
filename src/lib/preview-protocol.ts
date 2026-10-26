@@ -18,6 +18,7 @@ const ToPreview = z.discriminatedUnion("type", [
     mode: z.enum(["light", "dark"]),
   }),
   z.object({ type: z.literal("highlight"), nodeId: NodeId }),
+  z.object({ type: z.literal("connect") }),
 ]);
 
 export type FromPreviewMessage = z.infer<typeof FromPreview>;

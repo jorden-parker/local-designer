@@ -60,8 +60,16 @@ describe("proxy", () => {
     expect(cookie).toMatchObject({ value: TOKEN, httpOnly: true, sameSite: "strict", path: "/" });
   });
 
+  it("serves the static preview without the cookie, because its sandbox has no origin", () => {
+    const preview = "http://127.0.0.1:4490/preview/main.js";
+    expect(proxy(requestFor({}, "GET", preview)).status).toBe(200);
+    expect(proxy(requestFor({ host: "evil.example:4490" }, "GET", preview)).status).toBe(403);
+    expect(proxy(requestFor({}, "POST", preview)).status).toBe(401);
+    expect(proxy(requestFor({}, "GET", "http://127.0.0.1:4490/previews")).status).toBe(401);
+  });
+
   it("lets only this app frame the preview page", () => {
-    const preview = proxy(requestFor(SIGNED_IN, "GET", "http://127.0.0.1:4490/preview"));
+    const preview = proxy(requestFor({}, "GET", "http://127.0.0.1:4490/preview/index.html"));
     expect(preview.headers.get("x-frame-options")).toBe("SAMEORIGIN");
     expect(preview.headers.get("content-security-policy")).toBe("frame-ancestors 'self'");
   });

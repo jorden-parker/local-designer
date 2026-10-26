@@ -22,7 +22,7 @@ const RENDER = {
 function fromWorkspace(data: unknown) {
   act(() => {
     window.dispatchEvent(
-      new MessageEvent("message", { data, source: window, origin: window.location.origin }),
+      new MessageEvent("message", { data, source: window, origin: "http://127.0.0.1:4490" }),
     );
   });
 }
@@ -33,10 +33,17 @@ describe("PreviewRuntime", () => {
   it("says it is ready, renders the design and reports clicked elements", async () => {
     const posted = vi.spyOn(window, "postMessage");
     render(<PreviewRuntime />);
-    expect(posted).toHaveBeenCalledWith({ type: "ready" }, window.location.origin);
+    expect(posted).toHaveBeenCalledWith({ type: "ready" }, "*");
     fromWorkspace(RENDER);
     await userEvent.click(screen.getByRole("button", { name: "Buy" }));
-    expect(posted).toHaveBeenCalledWith({ type: "select", nodeId: "n2" }, window.location.origin);
+    expect(posted).toHaveBeenCalledWith({ type: "select", nodeId: "n2" }, "*");
+  });
+
+  it("says it is ready again when the workspace connects", () => {
+    render(<PreviewRuntime />);
+    const posted = vi.spyOn(window, "postMessage");
+    fromWorkspace({ type: "connect" });
+    expect(posted).toHaveBeenCalledWith({ type: "ready" }, "*");
   });
 
   it("applies the design system's theme and mode", () => {
@@ -58,9 +65,6 @@ describe("PreviewRuntime", () => {
     const posted = vi.spyOn(window, "postMessage");
     render(<PreviewRuntime />);
     fromWorkspace({ ...RENDER, code: "export default function D() { return <p>; }" });
-    expect(posted).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "error" }),
-      window.location.origin,
-    );
+    expect(posted).toHaveBeenCalledWith(expect.objectContaining({ type: "error" }), "*");
   });
 });
