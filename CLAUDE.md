@@ -27,6 +27,8 @@ Code prompt) carries the tokens, theme, components, pages and a brief.
 - `bun run typecheck`, `bun run lint`, `bunx fallow`
 - `.claude/verify`: runs the full gate (tests, tsc, eslint, fallow). It must
   pass before you finish.
+- Commit messages follow Conventional Commits (`feat:`, `fix:`, `chore:`…). The
+  `commit-msg` hook runs commitlint and rejects anything else.
 
 Vitest has two projects. `*.test.ts` runs in node and `*.test.tsx` runs in jsdom
 (setup: `src/test/dom-setup.ts`). `src/test/fake-model.ts` fakes a streaming
