@@ -19,52 +19,86 @@ const RENDER = {
   mode: "dark",
 };
 
-function fromWorkspace(data: unknown) {
+const flush = () => act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+
+function offerChannel(source: Window = window) {
+  const channel = new MessageChannel();
   act(() => {
     window.dispatchEvent(
-      new MessageEvent("message", { data, source: window, origin: "http://127.0.0.1:4490" }),
+      new MessageEvent("message", {
+        data: { type: "connect" },
+        source,
+        ports: [channel.port2],
+      }),
     );
   });
+  return channel.port1;
+}
+
+async function connectWorkspace() {
+  const port = offerChannel();
+  const received: unknown[] = [];
+  port.onmessage = (event) => received.push(event.data);
+  await flush();
+  const send = async (data: unknown) => {
+    port.postMessage(data);
+    await flush();
+  };
+  return { received, send };
 }
 
 describe("PreviewRuntime", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("says it is ready, renders the design and reports clicked elements", async () => {
+  it("announces itself to the workspace window", () => {
     const posted = vi.spyOn(window, "postMessage");
     render(<PreviewRuntime />);
     expect(posted).toHaveBeenCalledWith({ type: "ready" }, "*");
-    fromWorkspace(RENDER);
+  });
+
+  it("accepts the offered channel, renders the design and reports clicked elements", async () => {
+    render(<PreviewRuntime />);
+    const workspace = await connectWorkspace();
+    expect(workspace.received).toEqual([{ type: "ready" }]);
+    await workspace.send(RENDER);
     await userEvent.click(screen.getByRole("button", { name: "Buy" }));
-    expect(posted).toHaveBeenCalledWith({ type: "select", nodeId: "n2" }, "*");
+    await flush();
+    expect(workspace.received).toContainEqual({ type: "select", nodeId: "n2" });
   });
 
-  it("says it is ready again when the workspace connects", () => {
+  it("keeps the first channel and ignores later offers", async () => {
     render(<PreviewRuntime />);
-    const posted = vi.spyOn(window, "postMessage");
-    fromWorkspace({ type: "connect" });
-    expect(posted).toHaveBeenCalledWith({ type: "ready" }, "*");
+    const workspace = await connectWorkspace();
+    const intruder = await connectWorkspace();
+    await intruder.send(RENDER);
+    expect(screen.queryByRole("button", { name: "Buy" })).toBeNull();
+    expect(intruder.received).toEqual([]);
+    await workspace.send(RENDER);
+    expect(screen.getByRole("button", { name: "Buy" })).toBeTruthy();
   });
 
-  it("applies the design system's theme and mode", () => {
+  it("applies the design system's theme and mode", async () => {
     const { container } = render(<PreviewRuntime />);
-    fromWorkspace(RENDER);
+    const workspace = await connectWorkspace();
+    await workspace.send(RENDER);
     expect(container.querySelector('style[type="text/tailwindcss"]')?.textContent).toBe(
       RENDER.theme,
     );
     expect(document.documentElement.dataset.theme).toBe("dark");
   });
 
-  it("outlines the element the workspace highlights", () => {
+  it("outlines the element the workspace highlights", async () => {
     const { container } = render(<PreviewRuntime />);
-    fromWorkspace({ type: "highlight", nodeId: "n1" });
+    const workspace = await connectWorkspace();
+    await workspace.send({ type: "highlight", nodeId: "n1" });
     expect(container.querySelector("style")?.textContent).toContain('[data-node-id="n1"]');
   });
 
-  it("reports code that cannot run", () => {
-    const posted = vi.spyOn(window, "postMessage");
+  it("reports code that cannot run", async () => {
     render(<PreviewRuntime />);
-    fromWorkspace({ ...RENDER, code: "export default function D() { return <p>; }" });
-    expect(posted).toHaveBeenCalledWith(expect.objectContaining({ type: "error" }), "*");
+    const workspace = await connectWorkspace();
+    await workspace.send({ ...RENDER, code: "export default function D() { return <p>; }" });
+    await flush();
+    expect(workspace.received).toContainEqual(expect.objectContaining({ type: "error" }));
   });
 });

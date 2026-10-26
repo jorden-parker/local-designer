@@ -17,8 +17,43 @@ type Props = {
 
 const OPAQUE_FRAME_ORIGIN = "*";
 
-function postToFrame(frame: HTMLIFrameElement | null, message: ToPreviewMessage) {
-  frame?.contentWindow?.postMessage(message, OPAQUE_FRAME_ORIGIN);
+function isReady(data: unknown): boolean {
+  return isFromPreview(data) && data.type === "ready";
+}
+
+function offerChannel(frame: HTMLIFrameElement | null, onReady: (port: MessagePort) => void) {
+  const channel = new MessageChannel();
+  channel.port1.onmessage = (event) => {
+    if (isReady(event.data)) onReady(channel.port1);
+  };
+  frame?.contentWindow?.postMessage(
+    { type: "connect" } satisfies ToPreviewMessage,
+    OPAQUE_FRAME_ORIGIN,
+    [channel.port2],
+  );
+}
+
+function usePreviewPort() {
+  const frame = useRef<HTMLIFrameElement>(null);
+  const [port, setPort] = useState<MessagePort | null>(null);
+
+  useEffect(() => {
+    let connected = false;
+    const connect = (accepted: MessagePort) => {
+      if (connected) return;
+      connected = true;
+      setPort(accepted);
+    };
+    const announce = (event: MessageEvent) => {
+      if (connected || event.source !== frame.current?.contentWindow) return;
+      if (isReady(event.data)) offerChannel(frame.current, connect);
+    };
+    window.addEventListener("message", announce);
+    offerChannel(frame.current, connect);
+    return () => window.removeEventListener("message", announce);
+  }, []);
+
+  return { frame, port };
 }
 
 function usePreviewFrame(
@@ -26,35 +61,29 @@ function usePreviewFrame(
   selectedNodeId: string | null,
   onSelect: Props["onSelect"],
 ) {
-  const frame = useRef<HTMLIFrameElement>(null);
-  const [ready, setReady] = useState(false);
+  const { frame, port } = usePreviewPort();
   const [error, setError] = useState<{ design: RenderMessage | null; message: string } | null>(
     null,
   );
 
   useEffect(() => {
+    if (!port) return;
     const receive = (event: MessageEvent) => {
-      if (event.source !== frame.current?.contentWindow) return;
       if (!isFromPreview(event.data)) return;
-      if (event.data.type === "ready") setReady(true);
       if (event.data.type === "select") onSelect(event.data.nodeId);
       if (event.data.type === "error") setError({ design, message: event.data.message });
     };
-    window.addEventListener("message", receive);
-    return () => window.removeEventListener("message", receive);
-  }, [design, onSelect]);
+    port.addEventListener("message", receive);
+    return () => port.removeEventListener("message", receive);
+  }, [port, design, onSelect]);
 
   useEffect(() => {
-    postToFrame(frame.current, { type: "connect" });
-  }, []);
+    if (design !== null) port?.postMessage(design);
+  }, [port, design]);
 
   useEffect(() => {
-    if (ready && design !== null) postToFrame(frame.current, design);
-  }, [ready, design]);
-
-  useEffect(() => {
-    if (ready) postToFrame(frame.current, { type: "highlight", nodeId: selectedNodeId });
-  }, [ready, selectedNodeId]);
+    port?.postMessage({ type: "highlight", nodeId: selectedNodeId } satisfies ToPreviewMessage);
+  }, [port, selectedNodeId]);
 
   return { frame, error: error?.design === design ? error.message : null };
 }

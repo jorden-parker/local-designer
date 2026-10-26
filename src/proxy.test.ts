@@ -68,10 +68,14 @@ describe("proxy", () => {
     expect(proxy(requestFor({}, "GET", "http://127.0.0.1:4490/previews")).status).toBe(401);
   });
 
-  it("lets only this app frame the preview page", () => {
+  it("lets only this app frame the preview page and limits it to this app's scripts", () => {
     const preview = proxy(requestFor({}, "GET", "http://127.0.0.1:4490/preview/index.html"));
     expect(preview.headers.get("x-frame-options")).toBe("SAMEORIGIN");
-    expect(preview.headers.get("content-security-policy")).toBe("frame-ancestors 'self'");
+    expect(preview.headers.get("content-security-policy")).toBe(
+      "default-src 'none'; script-src http://127.0.0.1:4490 'unsafe-eval'; " +
+        "style-src 'unsafe-inline'; img-src data:; form-action 'none'; " +
+        "frame-ancestors http://127.0.0.1:4490",
+    );
   });
 
   it("forbids framing on every other response", () => {

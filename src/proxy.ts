@@ -67,16 +67,31 @@ function guard(request: NextRequest, token: string): NextResponse {
   return NextResponse.next();
 }
 
-function limitFraming(response: NextResponse, pathname: string): NextResponse {
-  const framedBySelf = pathname.startsWith(PREVIEW_PATH);
-  response.headers.set("X-Frame-Options", framedBySelf ? "SAMEORIGIN" : "DENY");
+function previewPolicy(origin: string): string {
+  return [
+    "default-src 'none'",
+    `script-src ${origin} 'unsafe-eval'`,
+    "style-src 'unsafe-inline'",
+    "img-src data:",
+    "form-action 'none'",
+    `frame-ancestors ${origin}`,
+  ].join("; ");
+}
+
+function requestOrigin(request: NextRequest): string {
+  return `${request.nextUrl.protocol}//${request.headers.get("host")}`;
+}
+
+function limitFraming(response: NextResponse, request: NextRequest): NextResponse {
+  const isPreview = request.nextUrl.pathname.startsWith(PREVIEW_PATH);
+  response.headers.set("X-Frame-Options", isPreview ? "SAMEORIGIN" : "DENY");
   response.headers.set(
     "Content-Security-Policy",
-    framedBySelf ? "frame-ancestors 'self'" : "frame-ancestors 'none'",
+    isPreview ? previewPolicy(requestOrigin(request)) : "frame-ancestors 'none'",
   );
   return response;
 }
 
 export function proxy(request: NextRequest) {
-  return limitFraming(guard(request, loadAccessToken()), request.nextUrl.pathname);
+  return limitFraming(guard(request, loadAccessToken()), request);
 }

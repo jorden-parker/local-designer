@@ -1,6 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RenderMessage } from "@/lib/preview-protocol";
 import { Canvas } from "./canvas";
 
@@ -13,9 +13,34 @@ const RENDER: RenderMessage = {
   mode: "light",
 };
 
+const flush = () => act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+
+function offeredPorts(posted: ReturnType<typeof vi.fn>): MessagePort[] {
+  return posted.mock.calls
+    .filter(([message]) => (message as { type: string }).type === "connect")
+    .map(([, , transfer]) => (transfer as MessagePort[])[0]);
+}
+
+async function connectPreview(posted: ReturnType<typeof vi.fn>) {
+  const port = offeredPorts(posted).at(-1) as MessagePort;
+  const received: unknown[] = [];
+  port.onmessage = (event) => received.push(event.data);
+  port.postMessage({ type: "ready" });
+  await flush();
+  const send = async (data: unknown) => {
+    port.postMessage(data);
+    await flush();
+  };
+  return { received, send };
+}
+
 function setup(design: RenderMessage | null = RENDER) {
   const onSelect = vi.fn();
   const onFixError = vi.fn();
+  const posted = vi.fn();
+  vi.spyOn(HTMLIFrameElement.prototype, "contentWindow", "get").mockReturnValue({
+    postMessage: posted,
+  } as unknown as Window);
   const view = render(
     <Canvas
       design={design}
@@ -28,44 +53,55 @@ function setup(design: RenderMessage | null = RENDER) {
   );
   const frame = screen.getByTitle("Design preview") as HTMLIFrameElement;
   const preview = frame.contentWindow as Window;
-  const posted = vi.spyOn(preview, "postMessage");
-  const fromPreview = (data: unknown, source: Window | null = preview) =>
+  const announce = (source: unknown = preview) =>
     act(() => {
-      window.dispatchEvent(new MessageEvent("message", { data, source, origin: "null" }));
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: { type: "ready" },
+          source: source as Window,
+          origin: "null",
+        }),
+      );
     });
-  return { onSelect, onFixError, posted, fromPreview, frame, view };
+  return { onSelect, onFixError, posted, announce, frame, view };
 }
 
 describe("Canvas", () => {
-  it("sends the code and the selection once the preview is ready", () => {
-    const { posted, fromPreview } = setup();
-    expect(posted).not.toHaveBeenCalled();
-    fromPreview({ type: "ready" });
-    expect(posted).toHaveBeenCalledWith(RENDER, "*");
-    expect(posted).toHaveBeenCalledWith({ type: "highlight", nodeId: "n2" }, "*");
+  afterEach(() => vi.restoreAllMocks());
+
+  it("offers the preview a private channel and sends the design over it", async () => {
+    const { posted } = setup();
+    expect(posted).toHaveBeenCalledWith({ type: "connect" }, "*", [expect.any(MessagePort)]);
+    const preview = await connectPreview(posted);
+    expect(preview.received).toEqual([RENDER, { type: "highlight", nodeId: "n2" }]);
   });
 
-  it("asks a preview that loaded before the workspace to say it is ready", () => {
-    const connect = vi.fn();
-    vi.spyOn(HTMLIFrameElement.prototype, "contentWindow", "get").mockReturnValue({
-      postMessage: connect,
-    } as unknown as Window);
-    setup();
-    expect(connect).toHaveBeenCalledWith({ type: "connect" }, "*");
-    vi.restoreAllMocks();
+  it("offers a new channel when a preview that missed the first one says it is ready", () => {
+    const { posted, announce } = setup();
+    announce(window);
+    expect(offeredPorts(posted)).toHaveLength(1);
+    announce();
+    expect(offeredPorts(posted)).toHaveLength(2);
   });
 
-  it("passes selections on and ignores messages from other windows", () => {
-    const { onSelect, fromPreview } = setup();
-    fromPreview({ type: "select", nodeId: "n7" });
-    fromPreview({ type: "select", nodeId: "n8" }, window);
-    expect(onSelect).toHaveBeenCalledTimes(1);
+  it("stops offering channels once the preview has connected", async () => {
+    const { posted, announce } = setup();
+    await connectPreview(posted);
+    announce();
+    expect(offeredPorts(posted)).toHaveLength(1);
+  });
+
+  it("passes selections from the preview on", async () => {
+    const { onSelect, posted } = setup();
+    const preview = await connectPreview(posted);
+    await preview.send({ type: "select", nodeId: "n7" });
     expect(onSelect).toHaveBeenCalledWith("n7");
   });
 
   it("shows a render error and asks the model to fix it", async () => {
-    const { onFixError, fromPreview } = setup();
-    fromPreview({ type: "error", message: "tiers is not defined" });
+    const { onFixError, posted } = setup();
+    const preview = await connectPreview(posted);
+    await preview.send({ type: "error", message: "tiers is not defined" });
     expect(screen.getByRole("alert").textContent).toContain("tiers is not defined");
     await userEvent.click(screen.getByRole("button", { name: "Ask the model to fix it" }));
     expect(onFixError).toHaveBeenCalledWith("tiers is not defined");
