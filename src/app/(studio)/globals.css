@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+@custom-variant dark (@media (prefers-color-scheme: dark));
+
+:root {
+  --background-100: #ffffff;
+  --background-200: #fafafa;
+  --gray-100: #f2f2f2;
+  --gray-200: #ebebeb;
+  --gray-300: #e6e6e6;
+  --gray-400: #ebebeb;
+  --gray-500: #c9c9c9;
+  --gray-600: #a8a8a8;
+  --gray-700: #8f8f8f;
+  --gray-800: #7d7d7d;
+  --gray-900: #666666;
+  --gray-1000: #171717;
+  --gray-alpha-100: rgb(0 0 0 / 0.05);
+  --gray-alpha-200: rgb(0 0 0 / 0.08);
+  --gray-alpha-400: rgb(0 0 0 / 0.08);
+  --gray-alpha-600: rgb(0 0 0 / 0.34);
+  --blue-100: #f0f7ff;
+  --blue-300: #cae2ff;
+  --blue-700: #006bff;
+  --blue-900: #005ff2;
+  --red-100: #fff0f0;
+  --red-300: #ffd9da;
+  --red-900: #cb2a2f;
+  --green-700: #45a557;
+  --dot: rgb(0 0 0 / 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background-100: #0a0a0a;
+    --background-200: #000000;
+    --gray-100: #1a1a1a;
+    --gray-200: #1f1f1f;
+    --gray-300: #292929;
+    --gray-400: #2e2e2e;
+    --gray-500: #454545;
+    --gray-600: #878787;
+    --gray-700: #8f8f8f;
+    --gray-800: #7c7c7c;
+    --gray-900: #a1a1a1;
+    --gray-1000: #ededed;
+    --gray-alpha-100: rgb(255 255 255 / 0.06);
+    --gray-alpha-200: rgb(255 255 255 / 0.09);
+    --gray-alpha-400: rgb(255 255 255 / 0.14);
+    --gray-alpha-600: rgb(255 255 255 / 0.5);
+    --blue-100: #06193a;
+    --blue-300: #0d2d5e;
+    --blue-700: #006efe;
+    --blue-900: #52a8ff;
+    --red-100: #330b0d;
+    --red-300: #4f1215;
+    --red-900: #ff6166;
+    --green-700: #46a758;
+    --dot: rgb(255 255 255 / 0.1);
+  }
+}
+
+@theme inline {
+  --color-gray-*: initial;
+  --color-blue-*: initial;
+  --color-red-*: initial;
+  --color-green-*: initial;
+  --color-background-100: var(--background-100);
+  --color-background-200: var(--background-200);
+  --color-gray-100: var(--gray-100);
+  --color-gray-200: var(--gray-200);
+  --color-gray-300: var(--gray-300);
+  --color-gray-400: var(--gray-400);
+  --color-gray-500: var(--gray-500);
+  --color-gray-600: var(--gray-600);
+  --color-gray-700: var(--gray-700);
+  --color-gray-800: var(--gray-800);
+  --color-gray-900: var(--gray-900);
+  --color-gray-1000: var(--gray-1000);
+  --color-gray-alpha-100: var(--gray-alpha-100);
+  --color-gray-alpha-200: var(--gray-alpha-200);
+  --color-gray-alpha-400: var(--gray-alpha-400);
+  --color-blue-100: var(--blue-100);
+  --color-blue-300: var(--blue-300);
+  --color-blue-700: var(--blue-700);
+  --color-blue-900: var(--blue-900);
+  --color-red-100: var(--red-100);
+  --color-red-300: var(--red-300);
+  --color-red-900: var(--red-900);
+  --color-green-700: var(--green-700);
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --shadow-border: 0 0 0 1px var(--gray-alpha-400);
+  --shadow-border-small: 0 0 0 1px var(--gray-alpha-400), 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow-menu:
+    0 0 0 1px var(--gray-alpha-400), 0 4px 8px -4px rgb(0 0 0 / 0.04),
+    0 16px 24px -8px rgb(0 0 0 / 0.06);
+  --shadow-focus: 0 0 0 1px var(--gray-alpha-600), 0 0 0 4px rgb(0 114 245 / 0.24);
+}
+
+@theme {
+  --text-label: 0.8125rem;
+  --text-label--line-height: 1.25rem;
+  --text-copy: 0.875rem;
+  --text-copy--line-height: 1.5rem;
+  --container-panel: 18rem;
+  --container-inspector: 20rem;
+}
+
+@utility dot-grid {
+  background-color: var(--background-200);
+  background-image: radial-gradient(var(--dot) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+body {
+  background: var(--background-100);
+  color: var(--gray-1000);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--blue-300);
+}
