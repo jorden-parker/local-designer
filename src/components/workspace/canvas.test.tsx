@@ -1,8 +1,8 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RenderMessage } from "@/lib/preview-protocol";
-import { Canvas } from "./canvas";
+import { Canvas, NAVIGATION_BLOCKED } from "./canvas";
 
 const RENDER: RenderMessage = {
   type: "render",
@@ -115,6 +115,28 @@ describe("Canvas", () => {
     await preview.send({ type: "error", message: "x is not defined" });
     expect(onRenderError).toHaveBeenCalledWith("x is not defined");
     expect(screen.getByRole("alert").textContent).toContain("x is not defined");
+  });
+
+  it("replaces a preview that navigated away and does not send it that design again", async () => {
+    const { onRenderError, posted, frame } = setup();
+    await connectPreview(posted);
+    fireEvent.load(frame);
+    fireEvent.load(frame);
+    await flush();
+    const replaced = screen.getByTitle("Design preview");
+    expect(replaced).not.toBe(frame);
+    expect(onRenderError).toHaveBeenCalledWith(NAVIGATION_BLOCKED);
+    expect(screen.getByRole("alert").textContent).toContain(NAVIGATION_BLOCKED);
+    const preview = await connectPreview(posted);
+    expect(preview.received).toEqual([{ type: "highlight", nodeId: "n2" }]);
+  });
+
+  it("keeps the preview through its own first load", async () => {
+    const { onRenderError, posted, frame } = setup();
+    fireEvent.load(frame);
+    await connectPreview(posted);
+    expect(screen.getByTitle("Design preview")).toBe(frame);
+    expect(onRenderError).not.toHaveBeenCalled();
   });
 
   it("sizes the frame to the viewport and says when there is nothing to show", () => {

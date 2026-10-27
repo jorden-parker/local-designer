@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, Loader2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { isFromPreview, type RenderMessage, type ToPreviewMessage } from "@/lib/preview-protocol";
 import { VIEWPORTS, type ViewportId } from "./viewport";
@@ -17,6 +17,8 @@ type Props = {
 };
 
 const OPAQUE_FRAME_ORIGIN = "*";
+export const NAVIGATION_BLOCKED =
+  "The design tried to open another page in the preview, so the preview was reset.";
 
 function isReady(data: unknown): boolean {
   return isFromPreview(data) && data.type === "ready";
@@ -34,9 +36,34 @@ function offerChannel(frame: HTMLIFrameElement | null, onReady: (port: MessagePo
   );
 }
 
+function subscribeToNothing() {
+  return () => {};
+}
+
+function useHydrated(): boolean {
+  return useSyncExternalStore(
+    subscribeToNothing,
+    () => true,
+    () => false,
+  );
+}
+
 function usePreviewPort() {
   const frame = useRef<HTMLIFrameElement>(null);
+  const loads = useRef(0);
   const [port, setPort] = useState<MessagePort | null>(null);
+  const [generation, setGeneration] = useState(0);
+
+  const replaceFrame = useCallback(() => {
+    loads.current = 0;
+    setPort(null);
+    setGeneration((current) => current + 1);
+  }, []);
+
+  const isNavigationLoad = useCallback(() => {
+    loads.current += 1;
+    return loads.current > 1;
+  }, []);
 
   useEffect(() => {
     let connected = false;
@@ -52,9 +79,9 @@ function usePreviewPort() {
     window.addEventListener("message", announce);
     offerChannel(frame.current, connect);
     return () => window.removeEventListener("message", announce);
-  }, []);
+  }, [generation]);
 
-  return { frame, port };
+  return { frame, port, generation, replaceFrame, isNavigationLoad };
 }
 
 function usePreviewFrame(
@@ -63,10 +90,19 @@ function usePreviewFrame(
   onSelect: Props["onSelect"],
   onRenderError: Props["onRenderError"],
 ) {
-  const { frame, port } = usePreviewPort();
+  const { frame, port, generation, replaceFrame, isNavigationLoad } = usePreviewPort();
   const [error, setError] = useState<{ design: RenderMessage | null; message: string } | null>(
     null,
   );
+  const [blocked, setBlocked] = useState<RenderMessage | null>(null);
+
+  const onFrameLoad = () => {
+    if (!isNavigationLoad()) return;
+    setBlocked(design);
+    setError({ design, message: NAVIGATION_BLOCKED });
+    onRenderError(NAVIGATION_BLOCKED);
+    replaceFrame();
+  };
 
   useEffect(() => {
     if (!port) return;
@@ -83,14 +119,19 @@ function usePreviewFrame(
   }, [port, design, onSelect, onRenderError]);
 
   useEffect(() => {
-    if (design !== null) port?.postMessage(design);
-  }, [port, design]);
+    if (design !== null && design !== blocked) port?.postMessage(design);
+  }, [port, design, blocked]);
 
   useEffect(() => {
     port?.postMessage({ type: "highlight", nodeId: selectedNodeId } satisfies ToPreviewMessage);
   }, [port, selectedNodeId]);
 
-  return { frame, error: error?.design === design ? error.message : null };
+  return {
+    frame,
+    generation,
+    onFrameLoad,
+    error: error?.design === design ? error.message : null,
+  };
 }
 
 export function Canvas({
@@ -102,7 +143,13 @@ export function Canvas({
   onFixError,
   onRenderError,
 }: Props) {
-  const { frame, error } = usePreviewFrame(design, selectedNodeId, onSelect, onRenderError);
+  const { frame, generation, onFrameLoad, error } = usePreviewFrame(
+    design,
+    selectedNodeId,
+    onSelect,
+    onRenderError,
+  );
+  const hydrated = useHydrated();
   const width = VIEWPORTS.find((option) => option.id === viewport)?.width ?? "100%";
 
   return (
@@ -111,13 +158,17 @@ export function Canvas({
         className="relative h-full max-w-full overflow-hidden rounded-xl bg-background-100 shadow-menu transition-[width] duration-300"
         style={{ width }}
       >
-        <iframe
-          ref={frame}
-          title="Design preview"
-          src="/preview/index.html"
-          sandbox="allow-scripts"
-          className="size-full"
-        />
+        {hydrated && (
+          <iframe
+            key={generation}
+            ref={frame}
+            title="Design preview"
+            src="/preview/index.html"
+            sandbox="allow-scripts"
+            className="size-full"
+            onLoad={onFrameLoad}
+          />
+        )}
         {design === null && (
           <div className="absolute inset-0 grid place-items-center bg-background-100 text-copy text-gray-900">
             <span className="flex items-center gap-2">
