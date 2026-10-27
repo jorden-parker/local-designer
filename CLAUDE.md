@@ -134,13 +134,17 @@ the viewed version and the mode into what the panels and canvas show. `api.ts`
 is the only module that fetches.
 
 **Security boundary** (`src/proxy.ts`). It rejects non-loopback `Host` headers
-and requires the `local-designer-token` cookie. The token lives in a 0600 file,
-and `instrumentation.ts` prints the sign-in link. Non-GET requests must be
-same-origin JSON. GET `/preview/` files are served without the cookie because
-the sandboxed frame cannot send it. Every route forbids framing except
-`/preview/`, which only its own origin may frame. The preview's CSP also allows
-only this origin's scripts and blocks every network request. Keep new mutating
-routes JSON.
+and requires the `local-designer-token` cookie. The access token lives in a 0600
+file and never leaves the server. At start `instrumentation.ts` prints a link
+with a single-use sign-in code (`sign-in-code.ts`), and redeeming it sets a
+30-day session cookie signed with the token (`session-cookie.ts`). Deleting the
+token file ends every session. Non-GET requests must be same-origin JSON. GET
+`/preview/` files are served without the cookie because the sandboxed frame
+cannot send it. Every route forbids framing except `/preview/`, which only its
+own origin may frame. The preview's CSP also allows only this origin's scripts
+and blocks every network request, but it cannot stop the frame navigating
+itself, so `canvas.tsx` replaces a frame that loads a second document and does
+not send it that design again. Keep new mutating routes JSON.
 
 **UI** uses Geist-style tokens in `src/app/(studio)/globals.css`, with dark mode
 following `prefers-color-scheme`. Use those utilities, not hex or arbitrary

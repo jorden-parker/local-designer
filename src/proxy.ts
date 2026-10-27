@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { loadAccessToken, matchesAccessToken } from "@/lib/access-token";
+import { loadAccessToken } from "@/lib/access-token";
+import { createSession, isValidSession, SESSION_MAX_AGE_SECONDS } from "@/lib/session-cookie";
+import { redeemSignInCode } from "@/lib/sign-in-code";
 
 const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
 const TOKEN_COOKIE = "local-designer-token";
-const TOKEN_PARAM = "token";
-const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+const CODE_PARAM = "code";
 
 function hostName(host: string | null): string | null {
   if (!host) return null;
@@ -29,21 +30,24 @@ function isSameOriginJson(request: NextRequest): boolean {
 }
 
 function signInFromLink(request: NextRequest, token: string): NextResponse | null {
-  if (!matchesAccessToken(request.nextUrl.searchParams.get(TOKEN_PARAM), token)) return null;
+  if (!redeemSignInCode(request.nextUrl.searchParams.get(CODE_PARAM))) return null;
   const destination = new URL(request.url);
-  destination.searchParams.delete(TOKEN_PARAM);
+  destination.searchParams.delete(CODE_PARAM);
   destination.host = request.headers.get("host") ?? destination.host;
   const response = NextResponse.redirect(destination.toString());
-  response.cookies.set(TOKEN_COOKIE, token, {
+  response.cookies.set(TOKEN_COOKIE, createSession(token), {
     httpOnly: true,
     sameSite: "strict",
     path: "/",
-    maxAge: COOKIE_MAX_AGE_SECONDS,
+    maxAge: SESSION_MAX_AGE_SECONDS,
   });
   return response;
 }
 
 const PREVIEW_PATH = "/preview/";
+const SIGN_IN_HELP =
+  "Open the local-designer link printed in the terminal. Each link works once; " +
+  "restart local-designer for a new one.";
 
 function isPreviewAsset(request: NextRequest): boolean {
   return request.method === "GET" && request.nextUrl.pathname.startsWith(PREVIEW_PATH);
@@ -56,8 +60,8 @@ function guard(request: NextRequest, token: string): NextResponse {
   if (isPreviewAsset(request)) return NextResponse.next();
   const signedIn = signInFromLink(request, token);
   if (signedIn) return signedIn;
-  if (!matchesAccessToken(request.cookies.get(TOKEN_COOKIE)?.value, token)) {
-    return new NextResponse("Open the local-designer link printed in the terminal.", {
+  if (!isValidSession(request.cookies.get(TOKEN_COOKIE)?.value, token)) {
+    return new NextResponse(SIGN_IN_HELP, {
       status: 401,
     });
   }

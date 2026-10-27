@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { accessLink, loadAccessToken, matchesAccessToken } from "./access-token";
+import { loadAccessToken, matchesSecret } from "./access-token";
 
 describe("access token", () => {
   let directory: string;
@@ -22,13 +22,9 @@ describe("access token", () => {
   });
 
   it("matches only the exact token", () => {
-    expect(matchesAccessToken("secret-token", "secret-token")).toBe(true);
-    expect(matchesAccessToken("secret-tokem", "secret-token")).toBe(false);
-    expect(matchesAccessToken("secret", "secret-token")).toBe(false);
-    expect(matchesAccessToken(null, "secret-token")).toBe(false);
-  });
-
-  it("builds the link that signs the browser in", () => {
-    expect(accessLink("abc")).toBe("http://127.0.0.1:4490/?token=abc");
+    expect(matchesSecret("secret-token", "secret-token")).toBe(true);
+    expect(matchesSecret("secret-tokem", "secret-token")).toBe(false);
+    expect(matchesSecret("secret", "secret-token")).toBe(false);
+    expect(matchesSecret(null, "secret-token")).toBe(false);
   });
 });

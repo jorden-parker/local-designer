@@ -3,7 +3,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { dataDirectory } from "@/lib/data-directory";
 
-const APP_ORIGIN = "http://127.0.0.1:4490";
 const TOKEN_BYTES = 32;
 
 function accessTokenPath(): string {
@@ -22,13 +21,9 @@ export function loadAccessToken(file = accessTokenPath()): string {
   return createAccessToken(file);
 }
 
-export function matchesAccessToken(candidate: string | null | undefined, token: string): boolean {
+export function matchesSecret(candidate: string | null | undefined, secret: string): boolean {
   if (!candidate) return false;
   const given = Buffer.from(candidate);
-  const expected = Buffer.from(token);
+  const expected = Buffer.from(secret);
   return given.length === expected.length && timingSafeEqual(given, expected);
-}
-
-export function accessLink(token: string): string {
-  return `${APP_ORIGIN}/?token=${token}`;
 }

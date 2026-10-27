@@ -4,14 +4,17 @@ import path from "node:path";
 import { NextRequest } from "next/server";
 import { afterAll, describe, expect, it } from "vitest";
 import { loadAccessToken } from "@/lib/access-token";
+import { createSession } from "@/lib/session-cookie";
+import { issueSignInCode } from "@/lib/sign-in-code";
 import { proxy } from "./proxy";
 
 const tokenDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "proxy-token-"));
 process.env.LOCAL_DESIGNER_TOKEN_FILE = path.join(tokenDirectory, "access-token");
+process.env.LOCAL_DESIGNER_SIGN_IN_FILE = path.join(tokenDirectory, "sign-in-code");
 const TOKEN = loadAccessToken();
 
 const API = "http://127.0.0.1:4490/api/designs";
-const SIGNED_IN = { cookie: `local-designer-token=${TOKEN}` };
+const SIGNED_IN = { cookie: `local-designer-token=${createSession(TOKEN)}` };
 
 function requestFor(headers: Record<string, string>, method = "POST", url = API): NextRequest {
   return new NextRequest(url, { method, headers: { host: "127.0.0.1:4490", ...headers } });
@@ -50,14 +53,24 @@ describe("proxy", () => {
     expect(proxy(requestFor({ cookie: "local-designer-token=wrong" }, "GET")).status).toBe(401);
   });
 
-  it("signs the browser in from the token link and strips the token from the URL", () => {
-    const response = proxy(
-      requestFor({}, "GET", `http://127.0.0.1:4490/d/abc?token=${TOKEN}&tab=notes`),
-    );
+  it("signs the browser in once from the code link and strips the code from the URL", () => {
+    const code = issueSignInCode();
+    const link = `http://127.0.0.1:4490/d/abc?code=${code}&tab=notes`;
+    const response = proxy(requestFor({}, "GET", link));
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("http://127.0.0.1:4490/d/abc?tab=notes");
     const cookie = response.cookies.get("local-designer-token");
-    expect(cookie).toMatchObject({ value: TOKEN, httpOnly: true, sameSite: "strict", path: "/" });
+    expect(cookie).toMatchObject({ httpOnly: true, sameSite: "strict", path: "/" });
+    expect(cookie?.value).not.toContain(TOKEN);
+    const session = { cookie: `local-designer-token=${cookie?.value}` };
+    expect(proxy(requestFor(session, "GET")).status).toBe(200);
+    expect(proxy(requestFor({}, "GET", link)).status).toBe(401);
+  });
+
+  it("does not accept the access token itself as a cookie or a link", () => {
+    expect(proxy(requestFor({ cookie: `local-designer-token=${TOKEN}` }, "GET")).status).toBe(401);
+    const link = `http://127.0.0.1:4490/?code=${TOKEN}`;
+    expect(proxy(requestFor({}, "GET", link)).status).toBe(401);
   });
 
   it("serves the static preview without the cookie, because its sandbox has no origin", () => {
