@@ -15,6 +15,8 @@ function renderBar(overrides: Partial<React.ComponentProps<typeof TopBar>> = {})
     models: ["granite", "qwen"],
     model: "granite",
     onModel: vi.fn(),
+    openPanel: null,
+    onTogglePanel: vi.fn(),
     ...overrides,
   };
   render(<TopBar {...props} />);
@@ -54,6 +56,18 @@ describe("TopBar", () => {
     expect(screen.getByRole("link", { name: "Handoff" }).getAttribute("href")).toBe(
       "/api/designs/d/handoff",
     );
+  });
+
+  it("toggles the project and inspector panels", async () => {
+    const props = renderBar({ openPanel: "inspector" });
+    const project = screen.getByRole("button", { name: "Project" });
+    const inspector = screen.getByRole("button", { name: "Inspector" });
+    expect(project.getAttribute("aria-expanded")).toBe("false");
+    expect(inspector.getAttribute("aria-expanded")).toBe("true");
+    await userEvent.click(project);
+    expect(props.onTogglePanel).toHaveBeenCalledWith("project");
+    await userEvent.click(inspector);
+    expect(props.onTogglePanel).toHaveBeenCalledWith("inspector");
   });
 
   it("cannot hand off before there is a design system", () => {

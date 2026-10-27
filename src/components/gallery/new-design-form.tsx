@@ -51,8 +51,8 @@ export function NewDesignForm() {
             if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) submit();
           }}
         />
-        <div className="flex items-center justify-between gap-2 px-1 pt-1">
-          <span className="text-xs text-gray-900">⌘ Enter to start</span>
+        <div className="flex items-center justify-end gap-2 px-1 pt-1 sm:justify-between">
+          <span className="hidden text-xs text-gray-900 sm:inline">⌘ Enter to start</span>
           <Button type="submit" disabled={!prompt.trim() || busy}>
             {busy ? <Loader2 className="animate-spin" /> : <ArrowRight />}
             Start designing
@@ -65,7 +65,7 @@ export function NewDesignForm() {
           <button
             key={example}
             type="button"
-            className="rounded-full bg-background-100 px-3 py-1 text-xs text-gray-900 shadow-border hover:text-gray-1000"
+            className="rounded-full bg-background-100 px-3 py-1 text-xs text-balance text-gray-900 shadow-border outline-none hover:text-gray-1000 focus-visible:shadow-focus"
             onClick={() => setPrompt(example)}
           >
             {example}

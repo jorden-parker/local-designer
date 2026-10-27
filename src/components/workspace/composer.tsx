@@ -36,7 +36,7 @@ export function Composer({ placeholder, disabled, onSubmit, suggestions = [] }: 
             <button
               key={suggestion}
               type="button"
-              className="rounded-full px-2.5 py-0.5 text-xs text-gray-900 shadow-border hover:bg-gray-alpha-100 hover:text-gray-1000"
+              className="rounded-full px-2.5 py-0.5 text-xs text-gray-900 shadow-border outline-none hover:bg-gray-alpha-100 hover:text-gray-1000 focus-visible:shadow-focus"
               onClick={() => setText(suggestion)}
             >
               {suggestion}

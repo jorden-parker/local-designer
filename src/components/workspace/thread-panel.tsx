@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { cn } from "cn";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SectionLabel } from "@/components/ui/section-label";
 import { Composer } from "./composer";
 import type { VersionSummary } from "./target-view";
 import type { RunState } from "./use-change-runner";
@@ -121,9 +122,7 @@ export function ThreadPanel(props: Props) {
   return (
     <section aria-label="History" className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto p-3">
-        <p className="px-1 pb-2 text-xs font-medium tracking-wide text-gray-900 uppercase">
-          History
-        </p>
+        <SectionLabel className="px-1 pb-2">History</SectionLabel>
         <ol className="flex flex-col gap-2">
           {versions.map((version) => (
             <VersionItem

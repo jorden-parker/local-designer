@@ -19,9 +19,9 @@ export function DesignList({ designs }: { designs: DesignSummary[] }) {
         <li key={design.id}>
           <Link
             href={`/d/${design.id}`}
-            className="flex h-full flex-col gap-3 rounded-xl bg-background-100 p-4 shadow-border transition-shadow hover:shadow-menu"
+            className="flex h-full flex-col gap-3 rounded-xl bg-background-100 p-4 shadow-border transition-shadow outline-none hover:shadow-menu focus-visible:shadow-focus"
           >
-            <div className="h-24 rounded-md dot-grid" />
+            <div className="h-28 rounded-md dot-grid" />
             <p className="line-clamp-2 text-sm font-medium">{design.title}</p>
             <div className="mt-auto flex items-center gap-2 text-xs text-gray-900">
               <Badge>

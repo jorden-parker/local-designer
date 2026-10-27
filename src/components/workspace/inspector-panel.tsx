@@ -4,6 +4,7 @@ import { MousePointerClick, X } from "lucide-react";
 import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SectionLabel } from "@/components/ui/section-label";
 import { stripIds } from "@/lib/design/annotate";
 import { elementTree } from "@/lib/design/element-tree";
 import { elementSource, elementTag } from "@/lib/design/subtree";
@@ -52,7 +53,7 @@ function ChangedElements({
           key={nodeId}
           type="button"
           aria-label={`Changed: <${elementTag(code, nodeId) ?? "element"}>`}
-          className="rounded-full px-2 py-0.5 font-mono text-xs text-gray-1000 shadow-border hover:bg-gray-alpha-100"
+          className="rounded-full px-2 py-0.5 font-mono text-xs text-gray-1000 shadow-border outline-none hover:bg-gray-alpha-100 focus-visible:shadow-focus"
           onClick={() => onSelect(nodeId)}
         >
           &lt;{elementTag(code, nodeId) ?? "element"}&gt;
@@ -64,7 +65,7 @@ function ChangedElements({
 
 function CodeBlock({ label, code }: { label: string; code: string }) {
   return (
-    <figure className="flex min-h-0 flex-col overflow-hidden rounded-md shadow-border">
+    <figure className="flex min-h-40 flex-col overflow-hidden rounded-md shadow-border">
       <figcaption className="border-b border-gray-alpha-400 bg-background-200 px-3 py-1.5 font-mono text-xs text-gray-900">
         {label}
       </figcaption>
@@ -79,7 +80,7 @@ function TokenSwatches({ tokens }: { tokens: Tokens }) {
   const { radius, font } = tokens;
   return (
     <section className="flex flex-col gap-2 rounded-md bg-background-200 p-3 shadow-border">
-      <p className="text-sm font-medium">Design tokens</p>
+      <SectionLabel>Design tokens</SectionLabel>
       <ul className="grid grid-cols-4 gap-2">
         {COLOR_TOKENS.map((token) => (
           <li
@@ -110,7 +111,7 @@ export function InspectorPanel(props: Props) {
 
   if (!element || !selectedNodeId) {
     return (
-      <aside className="flex min-h-0 flex-col gap-4 border-l border-gray-alpha-400 bg-background-100 p-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
         <div className="flex flex-col items-start gap-2 rounded-md bg-background-200 p-4 shadow-border">
           <MousePointerClick className="size-5 text-gray-900" />
           <p className="text-sm font-medium">Select an element</p>
@@ -122,12 +123,12 @@ export function InspectorPanel(props: Props) {
         {tree.length > 0 && <ElementTree nodes={tree} selectedNodeId={null} onSelect={onSelect} />}
         {tokens && <TokenSwatches tokens={tokens} />}
         {code && <CodeBlock label={fileName} code={stripIds(code)} />}
-      </aside>
+      </div>
     );
   }
 
   return (
-    <aside className="flex min-h-0 flex-col gap-4 border-l border-gray-alpha-400 bg-background-100 p-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
       <div className="flex items-center gap-2">
         <p className="text-sm font-medium">Selected</p>
         <Badge variant="blue" className="font-mono">
@@ -151,6 +152,6 @@ export function InspectorPanel(props: Props) {
         suggestions={ELEMENT_SUGGESTIONS}
         onSubmit={(request) => onRequest(request, selectedNodeId)}
       />
-    </aside>
+    </div>
   );
 }

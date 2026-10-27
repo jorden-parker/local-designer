@@ -4,6 +4,7 @@ import { FileText, Palette, Plus } from "lucide-react";
 import { useState } from "react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
+import { SectionLabel } from "@/components/ui/section-label";
 import type { Target } from "@/lib/types";
 import { Composer } from "./composer";
 import { SYSTEM_TARGET } from "./target-view";
@@ -56,7 +57,7 @@ export function ProjectNav({ pages, target, canAddPage, onShow, onAddPage }: Pro
         onClick={() => onShow(SYSTEM_TARGET)}
       />
       <div className="flex items-center justify-between px-1 pt-2 pb-1">
-        <p className="text-xs font-medium tracking-wide text-gray-900 uppercase">Pages</p>
+        <SectionLabel>Pages</SectionLabel>
         <Button
           variant="tertiary"
           size="icon"

@@ -106,7 +106,7 @@ export function Canvas({
   const width = VIEWPORTS.find((option) => option.id === viewport)?.width ?? "100%";
 
   return (
-    <main className="relative flex min-h-0 min-w-0 flex-col items-center overflow-auto dot-grid p-6">
+    <main className="relative flex min-h-0 min-w-0 flex-col items-center overflow-auto dot-grid p-3 sm:p-6">
       <div
         className="relative h-full max-w-full overflow-hidden rounded-xl bg-background-100 shadow-menu transition-[width] duration-300"
         style={{ width }}
@@ -130,10 +130,12 @@ export function Canvas({
       {error && (
         <div
           role="alert"
-          className="absolute right-6 bottom-6 left-6 mx-auto flex max-w-xl items-start gap-3 rounded-md bg-red-100 p-3 text-copy text-red-900 shadow-border"
+          className="absolute inset-x-3 bottom-3 mx-auto flex max-w-xl flex-col items-end gap-3 rounded-md bg-red-100 p-3 text-copy text-red-900 shadow-border sm:inset-x-6 sm:bottom-6 sm:flex-row sm:items-start"
         >
-          <AlertTriangle className="mt-1 size-4 shrink-0" />
-          <span className="min-w-0 flex-1 break-words">{error}</span>
+          <p className="flex min-w-0 flex-1 items-start gap-3">
+            <AlertTriangle className="mt-1 size-4 shrink-0" />
+            <span className="min-w-0 flex-1 break-words">{error}</span>
+          </p>
           <Button variant="secondary" disabled={running} onClick={() => onFixError(error)}>
             Ask the model to fix it
           </Button>
