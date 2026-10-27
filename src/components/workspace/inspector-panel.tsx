@@ -5,9 +5,11 @@ import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { stripIds } from "@/lib/design/annotate";
+import { elementTree } from "@/lib/design/element-tree";
 import { elementSource, elementTag } from "@/lib/design/subtree";
 import { COLOR_TOKENS, type Tokens } from "@/lib/design/tokens";
 import { Composer } from "./composer";
+import { ElementTree } from "./element-tree";
 
 type Props = {
   code: string | null;
@@ -15,7 +17,7 @@ type Props = {
   tokens: Tokens | null;
   selectedNodeId: string | null;
   running: boolean;
-  onClear: () => void;
+  onSelect: (nodeId: string | null) => void;
   onRequest: (request: string, nodeId: string) => void;
 };
 
@@ -72,8 +74,9 @@ function TokenSwatches({ tokens }: { tokens: Tokens }) {
 }
 
 export function InspectorPanel(props: Props) {
-  const { code, fileName, tokens, selectedNodeId, running, onClear, onRequest } = props;
+  const { code, fileName, tokens, selectedNodeId, running, onSelect, onRequest } = props;
   const element = useMemo(() => selectedElement(code, selectedNodeId), [code, selectedNodeId]);
+  const tree = useMemo(() => (code ? elementTree(code) : []), [code]);
 
   if (!element || !selectedNodeId) {
     return (
@@ -82,9 +85,10 @@ export function InspectorPanel(props: Props) {
           <MousePointerClick className="size-5 text-gray-900" />
           <p className="text-sm font-medium">Select an element</p>
           <p className="text-label text-gray-900">
-            Click anything in the canvas to inspect it and change just that part.
+            Click anything in the canvas, or pick it from the tree, to change just that part.
           </p>
         </div>
+        {tree.length > 0 && <ElementTree nodes={tree} selectedNodeId={null} onSelect={onSelect} />}
         {tokens && <TokenSwatches tokens={tokens} />}
         {code && <CodeBlock label={fileName} code={stripIds(code)} />}
       </aside>
@@ -103,11 +107,12 @@ export function InspectorPanel(props: Props) {
           size="icon"
           aria-label="Clear selection"
           className="ml-auto"
-          onClick={onClear}
+          onClick={() => onSelect(null)}
         >
           <X />
         </Button>
       </div>
+      <ElementTree nodes={tree} selectedNodeId={selectedNodeId} onSelect={onSelect} />
       <CodeBlock label="Selected element" code={element.source} />
       <Composer
         placeholder="Describe a change to this element"

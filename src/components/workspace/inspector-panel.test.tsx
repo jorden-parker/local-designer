@@ -19,7 +19,7 @@ describe("InspectorPanel", () => {
         tokens={null}
         selectedNodeId="n2"
         running={false}
-        onClear={() => {}}
+        onSelect={() => {}}
         onRequest={onRequest}
       />,
     );
@@ -41,7 +41,7 @@ describe("InspectorPanel", () => {
         tokens={null}
         selectedNodeId={null}
         running={false}
-        onClear={() => {}}
+        onSelect={() => {}}
         onRequest={() => {}}
       />,
     );
@@ -49,6 +49,40 @@ describe("InspectorPanel", () => {
     expect(screen.getByText(/export default function Design/).textContent).not.toContain(
       "data-node-id",
     );
+  });
+
+  it("selects an element from the tree", async () => {
+    const onSelect = vi.fn();
+    render(
+      <InspectorPanel
+        code={CODE}
+        fileName="Page.tsx"
+        tokens={null}
+        selectedNodeId={null}
+        running={false}
+        onSelect={onSelect}
+        onRequest={() => {}}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /h1.*Hello/ }));
+    expect(onSelect).toHaveBeenCalledWith("n2");
+  });
+
+  it("clears the selection", async () => {
+    const onSelect = vi.fn();
+    render(
+      <InspectorPanel
+        code={CODE}
+        fileName="Page.tsx"
+        tokens={null}
+        selectedNodeId="n2"
+        running={false}
+        onSelect={onSelect}
+        onRequest={() => {}}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Clear selection" }));
+    expect(onSelect).toHaveBeenCalledWith(null);
   });
 
   it("shows the design tokens of a design system", () => {
@@ -59,7 +93,7 @@ describe("InspectorPanel", () => {
         tokens={DEFAULT_TOKENS}
         selectedNodeId={null}
         running={false}
-        onClear={() => {}}
+        onSelect={() => {}}
         onRequest={() => {}}
       />,
     );

@@ -66,7 +66,7 @@ export function Workspace({ initialDesign }: { initialDesign: Design }) {
           tokens={view.tokens}
           selectedNodeId={selectedNodeId}
           running={running}
-          onClear={() => selectNode(null)}
+          onSelect={selectNode}
           onRequest={requestChange}
         />
       </div>
