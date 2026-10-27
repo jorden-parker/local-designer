@@ -11,12 +11,12 @@ planned on request.
 
 ## Execution order & status
 
-| Plan | Title                                                                | Priority | Effort | Depends on | Status |
-| ---- | -------------------------------------------------------------------- | -------- | ------ | ---------- | ------ |
-| 001  | Pages know about each other, and the starter kit has a Nav component | P1       | M      | —          | TODO   |
-| 002  | The inspector shows an element tree, so any element can be selected  | P1       | M      | —          | TODO   |
-| 003  | History is legible: viewing a version shows what it changed          | P2       | S+M    | 002        | TODO   |
-| 004  | A version that fails to render gets one automatic fix attempt        | P2       | S      | —          | TODO   |
+| Plan | Title                                                                | Priority | Effort | Depends on | Status                                                                    |
+| ---- | -------------------------------------------------------------------- | -------- | ------ | ---------- | ------------------------------------------------------------------------- |
+| 001  | Pages know about each other, and the starter kit has a Nav component | P1       | M      | —          | DONE (3ecc0a9; Ollama spike skipped, Nav uptake by a 3B model unobserved) |
+| 002  | The inspector shows an element tree, so any element can be selected  | P1       | M      | —          | DONE (4973b8d)                                                            |
+| 003  | History is legible: viewing a version shows what it changed          | P2       | S+M    | 002        | DONE (a2e912f; whole-file chip count not browser-checked)                 |
+| 004  | A version that fails to render gets one automatic fix attempt        | P2       | S      | —          | DONE (verified in jsdom tests only; no live-model or browser check)       |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
 REJECTED (with one-line rationale).
