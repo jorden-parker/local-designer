@@ -8,6 +8,12 @@ import { useTargetView } from "./use-target-view";
 
 const SYSTEM_REQUEST = "Design system";
 const FIX_REQUEST = "Fix this error: ";
+const FIX_MESSAGE_LIMIT = 200;
+
+function fixRequest(message: string): string {
+  const firstLine = message.split("\n", 1)[0];
+  return `${FIX_REQUEST}${firstLine.slice(0, FIX_MESSAGE_LIMIT)}`;
+}
 
 function useFirstDrafts(
   design: Design,
@@ -62,7 +68,7 @@ export function useWorkspace(initialDesign: Design) {
       if (run.status !== "idle" || !justDrafted.current || !viewingLatest) return;
       justDrafted.current = false;
       if (latest.request.startsWith(FIX_REQUEST)) return;
-      requestChange(`${FIX_REQUEST}${message}`, null);
+      requestChange(fixRequest(message), null);
     },
     [view.latest, view.viewed?.number, run.status, requestChange],
   );
