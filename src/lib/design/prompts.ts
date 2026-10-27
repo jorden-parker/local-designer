@@ -1,5 +1,6 @@
 import type { Message } from "@/lib/llm/client";
 import { COLOR_TOKENS, TOKEN_CLASSES, type Tokens } from "./tokens";
+import { navLabel } from "./nav-label";
 
 const EFFICIENCY_RULES = `- Be brief. Keep the file under 150 lines.
 - Put repeated items such as cards, rows, links and FAQ entries in an array and render them with .map().
@@ -94,13 +95,14 @@ export function starterComponentsMessages(brief: string, starter: string): Messa
   );
 }
 
-function navLinks(pageNames: string[]): string {
-  return `[${pageNames.map((name) => JSON.stringify(name)).join(", ")}]`;
+function quotedList(items: string[]): string {
+  return items.map((item) => JSON.stringify(item)).join(", ");
 }
 
 function otherPagesLine(otherPages: string[]): string {
+  const links = quotedList(otherPages.map(navLabel));
   return otherPages.length > 0
-    ? `\n\nOther pages: ${otherPages.join(", ")}. Link to them only in the navigation, as <Nav links={${navLinks(otherPages)}} />.`
+    ? `\n\nOther pages: ${quotedList(otherPages)}. Link to them only in the navigation, as <Nav links={[${links}]} />.`
     : "";
 }
 

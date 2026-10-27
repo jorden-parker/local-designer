@@ -33,9 +33,13 @@ describe("pageChange", () => {
 
   it("tells the model which other pages exist when drafting a new page", async () => {
     const { stream, requests } = fakeModel([fenced(PAGE)]);
-    await pageChange(stream, change({ otherPages: ["Home", "Checkout"] }), () => {});
-    expect(requests[0].messages[0].content).toContain("Other pages: Home, Checkout.");
-    expect(requests[0].messages[0].content).toContain(`links={["Home", "Checkout"]}`);
+    const otherPages = ["A plant shop: a home page with featured plants", "Checkout page"];
+    await pageChange(stream, change({ otherPages }), () => {});
+    const content = requests[0].messages[0].content;
+    expect(content).toContain(
+      'Other pages: "A plant shop: a home page with featured plants", "Checkout page".',
+    );
+    expect(content).toContain(`<Nav links={["Home", "Checkout"]} />`);
   });
 
   it("says nothing about other pages when there are none", async () => {

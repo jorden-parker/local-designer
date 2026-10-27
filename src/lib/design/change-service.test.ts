@@ -82,7 +82,7 @@ describe("change service", () => {
     await pageChangeResponse(id, pageId, body, { directory, config: CONFIG, fetchImpl }).then(
       (response) => response.text(),
     );
-    expect(bodies[0].messages[0].content).toContain("Other pages: checkout.");
+    expect(bodies[0].messages[0].content).toContain('Other pages: "checkout".');
     expect(bodies[0].messages[0].content).not.toContain("pricing");
   });
 
