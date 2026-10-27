@@ -28,7 +28,11 @@ Code prompt) carries the tokens, theme, components, pages and a brief.
 - `.claude/verify`: runs the full gate (tests, tsc, eslint, fallow). It must
   pass before you finish.
 - Commit messages follow Conventional Commits (`feat:`, `fix:`, `chore:`…). The
-  `commit-msg` hook runs commitlint and rejects anything else.
+  `commit-msg` hook runs commitlint and rejects anything else. The `pre-commit`
+  hook runs lint-staged (prettier on every staged file), `tsc` and the full test
+  suite, so a commit takes as long as the tests.
+- `public/preview/main.js` is gitignored. A fresh clone has no preview until
+  `bun run dev` or `bun run build:preview` has run once.
 
 Vitest has two projects. `*.test.ts` runs in node and `*.test.tsx` runs in jsdom
 (setup: `src/test/dom-setup.ts`). `src/test/fake-model.ts` fakes a streaming
@@ -44,12 +48,17 @@ model for pipeline tests.
 that Ollama has installed. `chatModels` lists the models for the picker. On this
 machine `.env.local` pins the small `granite4.2-3b-cc` for testing.
 
-**Pipelines** (`lib/design/`). Every model call goes through `runDraft` in
-`draft-runner.ts`. A `Draft` has a request, a `check` that turns the reply into
-a value plus a `Review` of errors and warnings, and a `repair` message. The
-first reply must be clean. Otherwise the model gets one repair turn listing
-every problem. A repair with only warnings is accepted, and if the repair still
-has errors, a first reply with only warnings is kept.
+**Pipelines** (`lib/design/`). The two streaming routes are thin: both call
+`change-service.ts`, which validates the body (`request`, `nodeId`,
+`baseVersion`, `model`), loads the design, resolves the base version (editing a
+version that is not the latest is allowed, and `nodeId` only applies when a base
+exists), streams the model output as text and saves the new version at the end.
+Every model call goes through `runDraft` in `draft-runner.ts`. A `Draft` has a
+request, a `check` that turns the reply into a value plus a `Review` of errors
+and warnings, and a `repair` message. The first reply must be clean. Otherwise
+the model gets one repair turn listing every problem. A repair with only
+warnings is accepted, and if the repair still has errors, a first reply with
+only warnings is kept.
 
 - `system-change.ts`: tokens as JSON (`tokens.ts`, zod-validated) and then
   components. A new system starts from `starter-components.ts`, which the model
@@ -63,6 +72,10 @@ has errors, a first reply with only warnings is kept.
   file.
 - `prompts.ts` holds every prompt. Keep the rules short and concrete, because
   they have to work with a 3B model.
+
+JSX is parsed with `@babel/parser` through `jsx-tree.ts`, which `annotate.ts`,
+`subtree.ts`, `review.ts`, `code-draft.ts` and the handoff share. Use it instead
+of regexes or a second parser.
 
 **Element ids** (`annotate.ts`, `subtree.ts`). Saved code carries
 `data-node-id="nN"` on host elements. Pages also put it on component usages:
@@ -99,7 +112,11 @@ Restoring adds a copy of an old version as a new version.
 
 **API routes** (`app/api/designs/...`):
 
+- `GET /api/models`: the models for the picker and the default. Every change
+  request names its `model`, so the picker overrides `LOCAL_DESIGNER_MODEL` per
+  request.
 - `POST /`: create a design from a brief.
+- `GET [id]`: read a design.
 - `POST [id]/system`: stream a design system change.
 - `POST [id]/pages`: add a page.
 - `POST [id]/pages/[pageId]/changes`: stream a page change. It returns 409
@@ -127,5 +144,7 @@ routes JSON.
 
 **UI** uses Geist-style tokens in `src/app/(studio)/globals.css`, with dark mode
 following `prefers-color-scheme`. Use those utilities, not hex or arbitrary
-values. Shared domain types are in `src/lib/types.ts`. Use the `@/` import alias
-for `src/`.
+values. `components/ui/` holds the shadcn-style primitives (`components.json`);
+add new primitives there rather than styling raw elements in the workspace.
+Shared domain types are in `src/lib/types.ts`. Use the `@/` import alias for
+`src/`.
