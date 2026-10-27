@@ -65,6 +65,7 @@ export function Workspace({ initialDesign }: { initialDesign: Design }) {
           fileName={target.kind === "system" ? "components.tsx" : "Page.tsx"}
           tokens={view.tokens}
           selectedNodeId={selectedNodeId}
+          changedNodeIds={view.changedNodeIds}
           running={running}
           onSelect={selectNode}
           onRequest={requestChange}

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { annotate } from "@/lib/design/annotate";
 import { DEFAULT_TOKENS, themeCss } from "@/lib/design/tokens";
 import type { Design } from "@/lib/types";
-import { initialTarget, targetView } from "./target-view";
+import { editedNodeId, initialTarget, targetView } from "./target-view";
 
 const META = { request: "r", nodeId: null, model: "m", createdAt: "t" };
 const COMPONENTS = annotate("export function Showcase() { return <section />; }");
@@ -53,6 +53,29 @@ describe("targetView", () => {
     expect(view.render).toMatchObject({ code: COMPONENTS, entry: "Showcase", components: null });
   });
 
+  it("lists the elements the viewed version changed against the one before", () => {
+    const first = annotate("export default function P() { return <main><h1>A</h1></main>; }");
+    const second = first.replace(">A<", ">B<");
+    const design: Design = {
+      ...DESIGN,
+      pages: [
+        {
+          ...DESIGN.pages[0],
+          versions: [
+            { ...META, number: 1, code: first },
+            { ...META, number: 2, code: second },
+          ],
+        },
+      ],
+    };
+    expect(
+      targetView(design, { kind: "page", pageId: "p1" }, null, "light").changedNodeIds,
+    ).toEqual(["n2"]);
+    expect(targetView(design, { kind: "page", pageId: "p1" }, 1, "light").changedNodeIds).toEqual(
+      [],
+    );
+  });
+
   it("has nothing to render before anything is drafted", () => {
     const empty = { ...DESIGN, system: [], pages: [] };
     expect(targetView(empty, { kind: "system" }, null, "light").render).toBeNull();
@@ -60,6 +83,32 @@ describe("targetView", () => {
       versions: [],
       render: null,
     });
+  });
+});
+
+describe("editedNodeId", () => {
+  const edited: Design = {
+    ...DESIGN,
+    pages: [
+      {
+        ...DESIGN.pages[0],
+        versions: [
+          ...DESIGN.pages[0].versions,
+          { ...META, number: 3, nodeId: "n2", code: "three" },
+        ],
+      },
+    ],
+  };
+
+  it("is the element a version was scoped to", () => {
+    expect(editedNodeId(edited, { kind: "page", pageId: "p1" }, 3)).toBe("n2");
+  });
+
+  it("is null for whole-file versions, unknown versions and unknown pages", () => {
+    expect(editedNodeId(edited, { kind: "page", pageId: "p1" }, 2)).toBeNull();
+    expect(editedNodeId(edited, { kind: "page", pageId: "p1" }, 9)).toBeNull();
+    expect(editedNodeId(edited, { kind: "page", pageId: "p9" }, 3)).toBeNull();
+    expect(editedNodeId(edited, { kind: "system" }, 1)).toBeNull();
   });
 });
 

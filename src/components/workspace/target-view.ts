@@ -2,6 +2,7 @@ import { stripIds } from "@/lib/design/annotate";
 import { themeCss, type Tokens } from "@/lib/design/tokens";
 import type { RenderMessage, ThemeMode } from "@/lib/preview-protocol";
 import type { Design, Target } from "@/lib/types";
+import { changedNodeIds } from "@/lib/design/version-diff";
 
 export type VersionSummary = {
   number: number;
@@ -17,14 +18,36 @@ export type TargetView = {
   code: string | null;
   tokens: Tokens | null;
   render: RenderMessage | null;
+  changedNodeIds: string[];
 };
 
 export const SYSTEM_TARGET: Target = { kind: "system" };
+
+function targetVersions(design: Design, target: Target): VersionSummary[] {
+  if (target.kind === "system") return design.system;
+  return design.pages.find((candidate) => candidate.id === target.pageId)?.versions ?? [];
+}
+
+export function editedNodeId(design: Design, target: Target, number: number): string | null {
+  return (
+    targetVersions(design, target).find((version) => version.number === number)?.nodeId ?? null
+  );
+}
 
 function pick<T extends VersionSummary>(versions: T[], viewedNumber: number | null) {
   const latest = versions.at(-1) ?? null;
   const viewed = versions.find((version) => version.number === viewedNumber) ?? latest;
   return { versions, latest, viewed };
+}
+
+function changedSince<T extends VersionSummary>(
+  versions: T[],
+  viewed: T | null,
+  codeOf: (version: T) => string,
+): string[] {
+  if (!viewed) return [];
+  const previous = versions.find((version) => version.number === viewed.number - 1);
+  return previous ? changedNodeIds(codeOf(previous), codeOf(viewed)) : [];
 }
 
 function systemView(design: Design, viewedNumber: number | null, mode: ThemeMode): TargetView {
@@ -34,6 +57,7 @@ function systemView(design: Design, viewedNumber: number | null, mode: ThemeMode
     ...picked,
     code: viewed?.components ?? null,
     tokens: viewed?.tokens ?? null,
+    changedNodeIds: changedSince(design.system, viewed, (version) => version.components),
     render: viewed && {
       type: "render",
       code: viewed.components,
@@ -59,6 +83,7 @@ function pageView(
     ...picked,
     code: viewed?.code ?? null,
     tokens: null,
+    changedNodeIds: changedSince(picked.versions, viewed, (version) => version.code),
     render:
       viewed && system
         ? {

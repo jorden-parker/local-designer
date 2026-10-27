@@ -96,6 +96,25 @@ describe("useWorkspace", () => {
     expect(result.current.view.render?.mode).toBe("dark");
   });
 
+  it("selects the element a viewed version edited", async () => {
+    const page = WITH_PAGE.pages[0];
+    const edited: Design = {
+      ...WITH_PAGE,
+      pages: [
+        {
+          ...page,
+          versions: [...page.versions, { ...META, number: 3, nodeId: "n2", code: "three" }],
+        },
+      ],
+    };
+    fakeApi([edited]);
+    const { result } = renderHook(() => useWorkspace(edited));
+    act(() => result.current.viewVersion(3));
+    expect(result.current.selectedNodeId).toBe("n2");
+    act(() => result.current.viewVersion(2));
+    expect(result.current.selectedNodeId).toBeNull();
+  });
+
   it("restores a version of the current target", async () => {
     const { posts } = fakeApi([WITH_PAGE]);
     const { result } = renderHook(() => useWorkspace(WITH_PAGE));

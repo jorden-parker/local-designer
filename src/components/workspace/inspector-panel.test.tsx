@@ -18,6 +18,7 @@ describe("InspectorPanel", () => {
         fileName="Page.tsx"
         tokens={null}
         selectedNodeId="n2"
+        changedNodeIds={[]}
         running={false}
         onSelect={() => {}}
         onRequest={onRequest}
@@ -40,6 +41,7 @@ describe("InspectorPanel", () => {
         fileName="Page.tsx"
         tokens={null}
         selectedNodeId={null}
+        changedNodeIds={[]}
         running={false}
         onSelect={() => {}}
         onRequest={() => {}}
@@ -59,6 +61,7 @@ describe("InspectorPanel", () => {
         fileName="Page.tsx"
         tokens={null}
         selectedNodeId={null}
+        changedNodeIds={[]}
         running={false}
         onSelect={onSelect}
         onRequest={() => {}}
@@ -76,6 +79,7 @@ describe("InspectorPanel", () => {
         fileName="Page.tsx"
         tokens={null}
         selectedNodeId="n2"
+        changedNodeIds={[]}
         running={false}
         onSelect={onSelect}
         onRequest={() => {}}
@@ -92,6 +96,7 @@ describe("InspectorPanel", () => {
         fileName="components.tsx"
         tokens={DEFAULT_TOKENS}
         selectedNodeId={null}
+        changedNodeIds={[]}
         running={false}
         onSelect={() => {}}
         onRequest={() => {}}
@@ -100,5 +105,22 @@ describe("InspectorPanel", () => {
     expect(screen.getByText("components.tsx")).toBeTruthy();
     expect(screen.getByTitle("primary: #171717 light, #ededed dark")).toBeTruthy();
     expect(screen.getByText("Radius 4px · 8px · 12px · sans")).toBeTruthy();
+  });
+  it("offers the elements the viewed version changed", async () => {
+    const onSelect = vi.fn();
+    render(
+      <InspectorPanel
+        code={CODE}
+        fileName="Page.tsx"
+        tokens={null}
+        selectedNodeId={null}
+        changedNodeIds={["n2"]}
+        running={false}
+        onSelect={onSelect}
+        onRequest={() => {}}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Changed: <h1>" }));
+    expect(onSelect).toHaveBeenCalledWith("n2");
   });
 });

@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import type { ThemeMode } from "@/lib/preview-protocol";
 import type { Design, Target } from "@/lib/types";
-import { initialTarget, targetView } from "./target-view";
+import { editedNodeId, initialTarget, targetView } from "./target-view";
 
 export function useTargetView(initialDesign: Design) {
   const [design, setDesign] = useState(initialDesign);
@@ -25,13 +25,21 @@ export function useTargetView(initialDesign: Design) {
     setViewedNumber(null);
   }, []);
 
+  const viewVersion = useCallback(
+    (number: number) => {
+      setViewedNumber(number);
+      setSelectedNodeId(editedNodeId(design, target, number));
+    },
+    [design, target],
+  );
+
   return {
     design,
     showDesign,
     target,
     showTarget,
     view,
-    viewVersion: setViewedNumber,
+    viewVersion,
     selectedNodeId,
     selectNode: setSelectedNodeId,
     mode,

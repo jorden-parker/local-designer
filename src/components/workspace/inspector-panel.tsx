@@ -16,6 +16,7 @@ type Props = {
   fileName: string;
   tokens: Tokens | null;
   selectedNodeId: string | null;
+  changedNodeIds: string[];
   running: boolean;
   onSelect: (nodeId: string | null) => void;
   onRequest: (request: string, nodeId: string) => void;
@@ -31,6 +32,34 @@ function selectedElement(code: string | null, nodeId: string | null) {
   } catch {
     return null;
   }
+}
+
+function ChangedElements({
+  code,
+  nodeIds,
+  onSelect,
+}: {
+  code: string;
+  nodeIds: string[];
+  onSelect: (nodeId: string) => void;
+}) {
+  if (nodeIds.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-label text-gray-900">Changed in this version</span>
+      {nodeIds.map((nodeId) => (
+        <button
+          key={nodeId}
+          type="button"
+          aria-label={`Changed: <${elementTag(code, nodeId) ?? "element"}>`}
+          className="rounded-full px-2 py-0.5 font-mono text-xs text-gray-1000 shadow-border hover:bg-gray-alpha-100"
+          onClick={() => onSelect(nodeId)}
+        >
+          &lt;{elementTag(code, nodeId) ?? "element"}&gt;
+        </button>
+      ))}
+    </div>
+  );
 }
 
 function CodeBlock({ label, code }: { label: string; code: string }) {
@@ -74,7 +103,8 @@ function TokenSwatches({ tokens }: { tokens: Tokens }) {
 }
 
 export function InspectorPanel(props: Props) {
-  const { code, fileName, tokens, selectedNodeId, running, onSelect, onRequest } = props;
+  const { code, fileName, tokens, selectedNodeId, changedNodeIds, running, onSelect, onRequest } =
+    props;
   const element = useMemo(() => selectedElement(code, selectedNodeId), [code, selectedNodeId]);
   const tree = useMemo(() => (code ? elementTree(code) : []), [code]);
 
@@ -88,6 +118,7 @@ export function InspectorPanel(props: Props) {
             Click anything in the canvas, or pick it from the tree, to change just that part.
           </p>
         </div>
+        {code && <ChangedElements code={code} nodeIds={changedNodeIds} onSelect={onSelect} />}
         {tree.length > 0 && <ElementTree nodes={tree} selectedNodeId={null} onSelect={onSelect} />}
         {tokens && <TokenSwatches tokens={tokens} />}
         {code && <CodeBlock label={fileName} code={stripIds(code)} />}
