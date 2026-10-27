@@ -7,6 +7,7 @@ import { useModels } from "./use-models";
 import { useTargetView } from "./use-target-view";
 
 const SYSTEM_REQUEST = "Design system";
+const FIX_REQUEST = "Fix this error: ";
 
 function useFirstDrafts(
   design: Design,
@@ -32,10 +33,11 @@ export function useWorkspace(initialDesign: Design) {
   const { design, showDesign, target, showTarget, view } = state;
   const { models, model, setModel } = useModels(view.latest?.model ?? null);
 
-  const reload = useCallback(
-    async () => showDesign(await fetchDesign(design.id)),
-    [design.id, showDesign],
-  );
+  const justDrafted = useRef(false);
+  const reload = useCallback(async () => {
+    showDesign(await fetchDesign(design.id));
+    justDrafted.current = true;
+  }, [design.id, showDesign]);
   const { run, start, stop } = useChangeRunner(design.id, reload);
 
   const draft = useCallback(
@@ -51,6 +53,18 @@ export function useWorkspace(initialDesign: Design) {
       start(target, { request, nodeId, baseVersion: view.viewed?.number ?? null, model });
     },
     [model, start, target, view.viewed?.number],
+  );
+
+  const reportRenderError = useCallback(
+    (message: string) => {
+      const latest = view.latest;
+      const viewingLatest = latest !== null && view.viewed?.number === latest.number;
+      if (run.status !== "idle" || !justDrafted.current || !viewingLatest) return;
+      justDrafted.current = false;
+      if (latest.request.startsWith(FIX_REQUEST)) return;
+      requestChange(`${FIX_REQUEST}${message}`, null);
+    },
+    [view.latest, view.viewed?.number, run.status, requestChange],
   );
 
   const createPage = useCallback(
@@ -80,6 +94,7 @@ export function useWorkspace(initialDesign: Design) {
     run,
     stop,
     requestChange,
+    reportRenderError,
     createPage,
     restore,
   };

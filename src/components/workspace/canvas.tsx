@@ -13,6 +13,7 @@ type Props = {
   running: boolean;
   onSelect: (nodeId: string | null) => void;
   onFixError: (message: string) => void;
+  onRenderError: (message: string) => void;
 };
 
 const OPAQUE_FRAME_ORIGIN = "*";
@@ -60,6 +61,7 @@ function usePreviewFrame(
   design: RenderMessage | null,
   selectedNodeId: string | null,
   onSelect: Props["onSelect"],
+  onRenderError: Props["onRenderError"],
 ) {
   const { frame, port } = usePreviewPort();
   const [error, setError] = useState<{ design: RenderMessage | null; message: string } | null>(
@@ -71,11 +73,14 @@ function usePreviewFrame(
     const receive = (event: MessageEvent) => {
       if (!isFromPreview(event.data)) return;
       if (event.data.type === "select") onSelect(event.data.nodeId);
-      if (event.data.type === "error") setError({ design, message: event.data.message });
+      if (event.data.type === "error") {
+        setError({ design, message: event.data.message });
+        onRenderError(event.data.message);
+      }
     };
     port.addEventListener("message", receive);
     return () => port.removeEventListener("message", receive);
-  }, [port, design, onSelect]);
+  }, [port, design, onSelect, onRenderError]);
 
   useEffect(() => {
     if (design !== null) port?.postMessage(design);
@@ -88,8 +93,16 @@ function usePreviewFrame(
   return { frame, error: error?.design === design ? error.message : null };
 }
 
-export function Canvas({ design, viewport, selectedNodeId, running, onSelect, onFixError }: Props) {
-  const { frame, error } = usePreviewFrame(design, selectedNodeId, onSelect);
+export function Canvas({
+  design,
+  viewport,
+  selectedNodeId,
+  running,
+  onSelect,
+  onFixError,
+  onRenderError,
+}: Props) {
+  const { frame, error } = usePreviewFrame(design, selectedNodeId, onSelect, onRenderError);
   const width = VIEWPORTS.find((option) => option.id === viewport)?.width ?? "100%";
 
   return (

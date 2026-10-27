@@ -37,6 +37,7 @@ async function connectPreview(posted: ReturnType<typeof vi.fn>) {
 function setup(design: RenderMessage | null = RENDER) {
   const onSelect = vi.fn();
   const onFixError = vi.fn();
+  const onRenderError = vi.fn();
   const posted = vi.fn();
   vi.spyOn(HTMLIFrameElement.prototype, "contentWindow", "get").mockReturnValue({
     postMessage: posted,
@@ -49,6 +50,7 @@ function setup(design: RenderMessage | null = RENDER) {
       running={false}
       onSelect={onSelect}
       onFixError={onFixError}
+      onRenderError={onRenderError}
     />,
   );
   const frame = screen.getByTitle("Design preview") as HTMLIFrameElement;
@@ -63,7 +65,7 @@ function setup(design: RenderMessage | null = RENDER) {
         }),
       );
     });
-  return { onSelect, onFixError, posted, announce, frame, view };
+  return { onSelect, onFixError, onRenderError, posted, announce, frame, view };
 }
 
 describe("Canvas", () => {
@@ -105,6 +107,14 @@ describe("Canvas", () => {
     expect(screen.getByRole("alert").textContent).toContain("tiers is not defined");
     await userEvent.click(screen.getByRole("button", { name: "Ask the model to fix it" }));
     expect(onFixError).toHaveBeenCalledWith("tiers is not defined");
+  });
+
+  it("reports a render error for the current design", async () => {
+    const { onRenderError, posted } = setup();
+    const preview = await connectPreview(posted);
+    await preview.send({ type: "error", message: "x is not defined" });
+    expect(onRenderError).toHaveBeenCalledWith("x is not defined");
+    expect(screen.getByRole("alert").textContent).toContain("x is not defined");
   });
 
   it("sizes the frame to the viewport and says when there is nothing to show", () => {

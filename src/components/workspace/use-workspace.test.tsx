@@ -54,6 +54,24 @@ function fakeApi(saved: Design[]) {
 
 const draft = (request: string) => ({ request, nodeId: null, baseVersion: null, model: "granite" });
 
+const SAVED: Design = { ...WITH_PAGE, title: "saved" };
+
+const FIXED: Design = {
+  ...WITH_PAGE,
+  title: "fixed",
+  pages: [
+    {
+      ...WITH_PAGE.pages[0],
+      versions: [
+        ...WITH_PAGE.pages[0].versions,
+        { ...META, number: 3, request: "Fix this error: x is not defined", code: "three" },
+      ],
+    },
+  ],
+};
+
+const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+
 describe("useWorkspace", () => {
   afterEach(() => vi.unstubAllGlobals());
 
@@ -113,6 +131,35 @@ describe("useWorkspace", () => {
     expect(result.current.selectedNodeId).toBe("n2");
     act(() => result.current.viewVersion(2));
     expect(result.current.selectedNodeId).toBeNull();
+  });
+
+  it("asks for one fix when the version it just drafted fails to render", async () => {
+    const { posts } = fakeApi([SAVED, FIXED]);
+    const { result } = renderHook(() => useWorkspace(WITH_PAGE));
+    await waitFor(() => expect(result.current.model).toBe("granite"));
+    act(() => result.current.requestChange("Add a footer", null));
+    await waitFor(() => expect(result.current.design.title).toBe("saved"));
+    await waitFor(() => expect(result.current.run.status).toBe("idle"));
+    act(() => result.current.reportRenderError("x is not defined"));
+    await waitFor(() => expect(posts).toHaveLength(2));
+    expect(posts[1].body).toEqual({
+      ...draft("Fix this error: x is not defined"),
+      baseVersion: 2,
+    });
+    await waitFor(() => expect(result.current.design.title).toBe("fixed"));
+    await waitFor(() => expect(result.current.run.status).toBe("idle"));
+    act(() => result.current.reportRenderError("still broken"));
+    await settle();
+    expect(posts).toHaveLength(2);
+  });
+
+  it("does not ask for a fix for a version it did not draft", async () => {
+    const { posts } = fakeApi([WITH_PAGE]);
+    const { result } = renderHook(() => useWorkspace(WITH_PAGE));
+    await waitFor(() => expect(result.current.model).toBe("granite"));
+    act(() => result.current.reportRenderError("x is not defined"));
+    await settle();
+    expect(posts).toHaveLength(0);
   });
 
   it("restores a version of the current target", async () => {

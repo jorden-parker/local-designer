@@ -59,6 +59,7 @@ export function Workspace({ initialDesign }: { initialDesign: Design }) {
           running={running}
           onSelect={selectNode}
           onFixError={(message) => requestChange(`Fix this error: ${message}`, null)}
+          onRenderError={workspace.reportRenderError}
         />
         <InspectorPanel
           code={view.code}
