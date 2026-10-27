@@ -42,9 +42,21 @@ export function ImagePlaceholder({ label = "Image", className = "", ...props }) 
   );
 }
 
+export function Nav({ brand = "Brand", links = [], className = "", ...props }) {
+  return (
+    <nav className={\`bg-background text-foreground border-b border-border flex items-center gap-6 px-6 py-3 \${className}\`} {...props}>
+      <span className="font-semibold">{brand}</span>
+      {links.map((link) => (
+        <a key={link} href="#" className="text-muted text-sm hover:text-foreground">{link}</a>
+      ))}
+    </nav>
+  );
+}
+
 export function Showcase() {
   return (
     <div className="bg-background text-foreground p-8 flex flex-col gap-8">
+      <Nav links={["Home", "Pricing", "Docs"]} />
       <Heading level={1}>Design system</Heading>
       <section className="flex flex-col gap-3">
         <Text>Buttons and badges</Text>

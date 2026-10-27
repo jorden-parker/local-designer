@@ -27,6 +27,15 @@ function modelReplying(...replies: string[]) {
   return { fetchImpl, models };
 }
 
+function modelSeeing(reply: string) {
+  const bodies: { messages: { content: string }[] }[] = [];
+  const fetchImpl = (async (_url: unknown, init?: RequestInit) => {
+    bodies.push(JSON.parse(String(init?.body)));
+    return new Response(sse(reply));
+  }) as typeof fetch;
+  return { fetchImpl, bodies };
+}
+
 const body = { request: "Design system", nodeId: null, baseVersion: null, model: "granite" };
 
 describe("change service", () => {
@@ -64,6 +73,17 @@ describe("change service", () => {
       model: "granite",
     });
     expect(design?.system[0].components).toContain('data-node-id="n1"');
+  });
+
+  it("names the design's other pages when drafting a page", async () => {
+    const { id, pageId } = await designWithSystem();
+    await addPage(directory, id, "checkout");
+    const { fetchImpl, bodies } = modelSeeing(fenced(PAGE));
+    await pageChangeResponse(id, pageId, body, { directory, config: CONFIG, fetchImpl }).then(
+      (response) => response.text(),
+    );
+    expect(bodies[0].messages[0].content).toContain("Other pages: checkout.");
+    expect(bodies[0].messages[0].content).not.toContain("pricing");
   });
 
   it("drafts a page from the latest design system", async () => {

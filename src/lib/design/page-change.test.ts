@@ -15,6 +15,7 @@ const change = (overrides = {}) => ({
   nodeId: null,
   baseCode: null,
   components: COMPONENTS,
+  otherPages: [],
   ...overrides,
 });
 
@@ -28,6 +29,18 @@ describe("pageChange", () => {
     expect(requests[0].system).toContain("bg-primary");
     expect(requests[0].system).not.toContain("data-node-id");
     expect(requests[0].messages[0].content).toContain("a shop");
+  });
+
+  it("tells the model which other pages exist when drafting a new page", async () => {
+    const { stream, requests } = fakeModel([fenced(PAGE)]);
+    await pageChange(stream, change({ otherPages: ["Home", "Checkout"] }), () => {});
+    expect(requests[0].messages[0].content).toContain("Other pages: Home, Checkout.");
+  });
+
+  it("says nothing about other pages when there are none", async () => {
+    const { stream, requests } = fakeModel([fenced(PAGE)]);
+    await pageChange(stream, change(), () => {});
+    expect(requests[0].messages[0].content).not.toContain("Other pages");
   });
 
   it("asks for a repair when the page uses a component that does not exist", async () => {

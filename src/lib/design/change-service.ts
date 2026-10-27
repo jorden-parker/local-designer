@@ -65,6 +65,10 @@ function baseVersion<T extends { number: number }>(versions: T[], number: number
   return number === null ? null : (versions.find((version) => version.number === number) ?? false);
 }
 
+function otherPageNames(design: Design, pageId: string): string[] {
+  return design.pages.filter((page) => page.id !== pageId).map((page) => page.name);
+}
+
 export async function systemChangeResponse(
   designId: string,
   body: unknown,
@@ -116,6 +120,7 @@ export async function pageChangeResponse(
         nodeId,
         baseCode: base ? base.code : null,
         components: system.components,
+        otherPages: otherPageNames(design, pageId),
       },
       emit,
     );

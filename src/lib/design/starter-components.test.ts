@@ -19,10 +19,19 @@ describe("STARTER_COMPONENTS", () => {
       "Heading",
       "Text",
       "ImagePlaceholder",
+      "Nav",
     ]);
     const loaded = loadDesign({ code: STARTER_COMPONENTS, entry: "Showcase", components: null });
     expect(loaded.ok && renderToStaticMarkup(createElement(loaded.component))).toContain(
       "<h1 class=",
     );
+  });
+
+  it("renders Nav links from an array", () => {
+    const code = `${STARTER_COMPONENTS}\nexport default function Page() { return <Nav links={["Home", "Pricing"]} />; }`;
+    const loaded = loadDesign({ code, entry: "default", components: null });
+    const html = loaded.ok ? renderToStaticMarkup(createElement(loaded.component)) : "";
+    expect(html).toContain(">Home<");
+    expect(html).toContain(">Pricing<");
   });
 });

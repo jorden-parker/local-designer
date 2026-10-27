@@ -10,6 +10,7 @@ export type PageChange = {
   nodeId: string | null;
   baseCode: string | null;
   components: string;
+  otherPages: string[];
 };
 
 export async function pageChange(
@@ -17,7 +18,7 @@ export async function pageChange(
   change: PageChange,
   onText: (text: string) => void,
 ): Promise<string> {
-  const { brief, request, nodeId, baseCode, components } = change;
+  const { brief, request, nodeId, baseCode, components, otherPages } = change;
   const names = componentNames(components);
   const rules = {
     review: (code: string) => reviewPage(code, names),
@@ -28,7 +29,7 @@ export async function pageChange(
   }
   const messages = baseCode
     ? wholeChangeMessages(stripIds(baseCode), request)
-    : newPageMessages(brief, request);
+    : newPageMessages(brief, request, otherPages);
   const system = pageSystemPrompt(names, stripIds(components));
   return runDraft(
     stream,
