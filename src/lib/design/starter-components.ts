@@ -46,9 +46,12 @@ export function Nav({ brand = "Brand", links = [], className = "", ...props }) {
   return (
     <nav className={\`bg-background text-foreground border-b border-border flex items-center gap-6 px-6 py-3 \${className}\`} {...props}>
       <span className="font-semibold">{brand}</span>
-      {links.map((link) => (
-        <a key={link} href="#" className="text-muted text-sm hover:text-foreground">{link}</a>
-      ))}
+      {links.map((link) => {
+        const { label, href = "#" } = typeof link === "string" ? { label: link } : link;
+        return (
+          <a key={label} href={href} className="text-muted text-sm hover:text-foreground">{label}</a>
+        );
+      })}
     </nav>
   );
 }

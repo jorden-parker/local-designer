@@ -35,6 +35,7 @@ describe("pageChange", () => {
     const { stream, requests } = fakeModel([fenced(PAGE)]);
     await pageChange(stream, change({ otherPages: ["Home", "Checkout"] }), () => {});
     expect(requests[0].messages[0].content).toContain("Other pages: Home, Checkout.");
+    expect(requests[0].messages[0].content).toContain(`links={["Home", "Checkout"]}`);
   });
 
   it("says nothing about other pages when there are none", async () => {

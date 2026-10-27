@@ -39,7 +39,7 @@ Rules:
 export const COMPONENTS_SYSTEM_PROMPT = `You are a design-system engineer. You write a product's shared UI components as one TSX file.
 Rules:
 - Export every component as export function Name({ className = "", ...props }) and spread ...props on its root element, joining className onto its classes.
-- Always include Button (variant "primary" or "secondary"), Card, Input, Badge, Heading (level 1 to 3), Text, ImagePlaceholder and Nav (brand and a links array), plus up to four components this product needs.
+- Always include Button (variant "primary" or "secondary"), Card, Input, Badge, Heading (level 1 to 3), Text, ImagePlaceholder and Nav (a brand, and links as an array of page-name strings), plus up to four components this product needs.
 - Also export function Showcase() that renders every component once, with example content, in labelled sections.
 ${TOKEN_RULES}
 ${EFFICIENCY_RULES}
@@ -94,9 +94,13 @@ export function starterComponentsMessages(brief: string, starter: string): Messa
   );
 }
 
+function navLinks(pageNames: string[]): string {
+  return `[${pageNames.map((name) => JSON.stringify(name)).join(", ")}]`;
+}
+
 function otherPagesLine(otherPages: string[]): string {
   return otherPages.length > 0
-    ? `\n\nOther pages: ${otherPages.join(", ")}. Link to them by name in the navigation and nowhere else.`
+    ? `\n\nOther pages: ${otherPages.join(", ")}. Link to them only in the navigation, as <Nav links={${navLinks(otherPages)}} />.`
     : "";
 }
 

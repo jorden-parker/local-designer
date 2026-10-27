@@ -34,4 +34,12 @@ describe("STARTER_COMPONENTS", () => {
     expect(html).toContain(">Home<");
     expect(html).toContain(">Pricing<");
   });
+
+  it("renders Nav links given as label and href objects", () => {
+    const code = `${STARTER_COMPONENTS}\nexport default function Page() { return <Nav links={[{ label: "Home", href: "#home" }]} />; }`;
+    const loaded = loadDesign({ code, entry: "default", components: null });
+    const html = loaded.ok ? renderToStaticMarkup(createElement(loaded.component)) : "";
+    expect(html).toContain('href="#home"');
+    expect(html).toContain(">Home<");
+  });
 });
